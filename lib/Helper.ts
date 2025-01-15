@@ -1,6 +1,6 @@
 import { BlockNames, type CustomBotEvents, Hook, PWGameClient } from "pw-js-api";
+import type { ProtoGen } from "pw-js-api";//"../node_modules/pw-js-api/dist/gen/world_pb";
 
-import type { WorldMeta } from "../node_modules/pw-js-api/dist/gen/world_pb";
 import Block from "./Block";
 import BufferReader from "./BufferReader";
 import Player, { IPlayerEffect, IPlayerRights, PlayerEffect } from "./Player";
@@ -22,7 +22,7 @@ export default class PWGameWorldHelper {
 
     globalSwitches:boolean[] = [];
 
-    private _meta?: WorldMeta | null;
+    private _meta?: ProtoGen.WorldMeta | null;
     private _width = 0;
     private _height = 0;
     private _init = false;

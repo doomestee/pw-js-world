@@ -5,3 +5,4 @@ tsconfig.json
 webpack.config.cjs
 pnpm-lock.yaml
 .npm-deprecaterc.json
+bun.lockb
