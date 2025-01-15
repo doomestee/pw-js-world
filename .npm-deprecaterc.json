@@ -1,0 +1,10 @@
+{
+    "$schema": "https://raw.githubusercontent.com/favware/npm-deprecate/main/assets/npm-deprecate.schema.json",
+    "name": "*dev*",
+    "deprecateDistTag": false,
+    "verbose": true,
+    "package": [
+        "pw-js-api"
+    ],
+    "message": "This version has been deprecated. Please use a newer version."
+}

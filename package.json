@@ -1,0 +1,41 @@
+{
+  "name": "pw-js-world",
+  "version": "0.0.1",
+  "description": "An optional package for PW-JS-Api, aims to serve world purposes.",
+  "main": "lib/index.ts",
+  "scripts": {
+    "test": "bun test/index.ts",
+    "build": "rimraf dist && tsc -p tsconfig.json && ncp lib/types dist/types",
+    "prepare": "pnpm run build"
+  },
+  "exports": {
+    "bun": "./dist/index.js",
+    "import": "./esm.mjs",
+    "require": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
+  "keywords": [
+    "PixelWalker",
+    "Util",
+    "Utilities",
+    "Misc"
+  ],
+  "author": "Doomester",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doomestee/pw-js-world.git"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "ncp": "^2.0.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "tslib": "~2.8.1"
+  },
+  "peerDependencies": {
+    "pw-js-api": ">=0.2.1"
+  }
+}

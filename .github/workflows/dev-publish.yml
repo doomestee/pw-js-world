@@ -1,0 +1,41 @@
+on: [workflow_dispatch, push]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm i --frozen-lockfile
+      - name: Set Version
+        run: |
+          git config user.email "<>"
+          git config user.name "GitHub Actions"
+          pnpm version --no-git-tag-version patch
+          hash=$(git rev-parse --short origin/main)
+          version=$(jq -r .version package.json)
+          v="$version-dev.$hash"
+          echo "Setting Version: $v"
+          contents=$(jq --arg version "$v" '.version = $version' package.json) && echo -E "${contents}" > package.json
+      - name: Publish
+        run: pnpm publish --provenance --no-git-checks --tag dev --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Deprecate Old Versions
+        run: npx -y npm-deprecate
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
