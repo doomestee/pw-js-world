@@ -1,11 +1,11 @@
-import { BlockNames, type CustomBotEvents, Hook, PWGameClient } from "pw-js-api";
+import { BlockNames, type CustomBotEvents, Hook } from "pw-js-api";
 import type { ProtoGen } from "pw-js-api";//"../node_modules/pw-js-api/dist/gen/world_pb";
 
 import Block from "./Block";
 import BufferReader from "./BufferReader";
-import Player, { IPlayerEffect, IPlayerRights, PlayerEffect } from "./Player";
+import Player, { PlayerEffect } from "./Player";
 import { LayerType } from "./Constants";
-import type { BlockArg, Point, SendableBlockPacket } from "./types";
+import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types";
 
 /**
  * To use this helper, you must first create an instance of this,
@@ -95,32 +95,7 @@ export default class PWGameWorldHelper {
      * 
      * DO NOT PUT () AFTER RECEIVEHOOK
      */
-    receiveHook: Hook<{
-            worldBlockPlacedPacket: { player: Player, oldBlocks: Block[], newBlocks: Block[] },
-            playerJoinedPacket: { player: Player },
-            playerLeftPacket: { player: Player },
-            playerInitPacket: { player: Player },
-            playerFacePacket: { player: Player, oldFace: number },
-            playerModModePacket: { player: Player, oldState: boolean },
-            playerGodModePacket: { player: Player, oldState: boolean },
-            playerAddEffectPacket: { player: Player, effect: IPlayerEffect },
-            playerRemoveEffectPacket: { player: Player, effect: IPlayerEffect },
-            playerResetEffectsPacket: { player: Player, effects: IPlayerEffect[] },
-            playerMovedPacket: { player: Player },
-            playerResetPacket: { player: Player },
-            playerRespawnPacket: { player: Player },
-            playerUpdateRightsPacket: { player: Player, rights: IPlayerRights },
-            playerTeamUpdatePacket: { player: Player, oldTeam: number },
-            playerCountersUpdatePacket: { player: Player, oldState: { coinsBlue: number, coinsGold: number, deaths: number } },
-            playerTeleportedPacket: { player: Player },
-            globalSwitchChangedPacket: { player: Player },
-            globalSwitchResetPacket: { player: Player },
-            playerLocalSwitchChangedPacket: { player: Player },
-            playerLocalSwitchResetPacket: { player: Player },
-            playerChatPacket: { player: Player },
-            playerDirectMessagePacket: { player: Player },
-            playerTouchBlockPacket: { player: Player },
-        }> = 
+    receiveHook: Hook<PWGameHook> = 
         (data: CustomBotEvents["raw"]) => {
 
         const { packet } = data;
