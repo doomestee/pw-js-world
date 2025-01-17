@@ -527,8 +527,23 @@ export default class PWGameWorldHelper {
 
     /**
      * Gets the block at the position.
+     * 
+     * Difference between this and using this.blocks directly is that this function will validate the positions and the layer.
      */
-    getBlockAt(x: number, y: number, l: number) {
+    getBlockAt(pos: Point, l: LayerType) : Block;
+    getBlockAt(x: number | Point, y: number, l: LayerType) : Block;
+    getBlockAt(x: number | Point, y: number | LayerType, l?: LayerType) {
+        if (typeof x !== "number") {
+            l = y;
+            y = x.y;
+            x = x.x;
+        }
+
+        if (l === undefined || l < 2) throw Error("Unknown layer");
+
+        if (x < 0 || x >= this.width) throw Error("X is outside the bound of the world.");
+        if (y < 0 || y >= this.height) throw Error("Y is outside the bound of the world.");
+
         return this.blocks[l][x][y];
     }
 
