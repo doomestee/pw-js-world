@@ -111,7 +111,7 @@ export default class Block {
         const blockData:ComponentTypeHeader[] = (BlockArgsHeadings as any)[BlockNames[bId]] ?? [];
 
         for (let i = 0, len = blockData.length; i < len; i++) {
-            const entry = BufferReader.Dynamic(i, args[i]);
+            const entry = BufferReader.Dynamic(blockData[i], args[i]);
             buffer.push(entry);
         }
 
