@@ -6,7 +6,7 @@
   "scripts": {
     "test": "bun test/index.ts",
     "build": "rimraf dist && tsc -p tsconfig.json && ncp lib/types dist/types",
-    "prepare": "pnpm run build"
+    "prepare": "npm run build"
   },
   "exports": {
     "bun": "./dist/index.js",
