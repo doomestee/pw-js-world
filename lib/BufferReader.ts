@@ -164,19 +164,11 @@ export default class BufferReader {
      * @returns {Buffer}
      */
     public static ByteArray(buffer: Buffer = Buffer.from([0])): Buffer {
-        // const bufferByteLen = Buffer.byteLength(buffer);
+        const bufferLength = Buffer.byteLength(buffer);
 
-        // const bufLength = Buffer.alloc(length7BitInt(bufferByteLen));
-        // write7BitInt(bufLength, bufferByteLen, 0);
-
-        // return Buffer.concat([Buffer.from([8]), bufLength, buffer]);
-
-        const stringByteLen = Buffer.byteLength(buffer);
-        const lengthByteCount = this.length7BitInt(stringByteLen);
-
-        const prefix = BufferReader.alloc(1 + lengthByteCount);
-        prefix.writeUInt8(ComponentTypeHeader.String);
-        prefix.write7BitInt(lengthByteCount);
+        const prefix = BufferReader.alloc(2);
+        prefix.writeUInt8(ComponentTypeHeader.ByteArray);
+        prefix.writeUInt8(bufferLength);
 
         return Buffer.concat([prefix.toBuffer(), buffer]);
     }
