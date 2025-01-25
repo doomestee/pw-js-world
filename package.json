@@ -8,7 +8,6 @@
     "build": "rimraf cm esm && npm run build:ts && ncp lib/types esm/types",
     "prepare": "pnpm run build"
   },
-  "type": "module",
   "exports": {
     "types": "./esm/index.js",
     "import": "./esm/index.js",
