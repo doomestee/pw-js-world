@@ -6,7 +6,7 @@
     "test": "bun test/index.ts",
     "build:ts": "tsc -p tsconfig-cm.json & tsc -p tsconfig-esm.json",
     "build": "rimraf cm esm && npm run build:ts && ncp lib/types esm/types",
-    "prepare": "pnpm run build"
+    "prepare": "npm run build"
   },
   "exports": {
     "types": "./esm/index.js",
