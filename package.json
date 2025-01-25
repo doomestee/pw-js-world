@@ -4,7 +4,8 @@
   "description": "An optional package for PW-JS-Api, aims to serve world purposes.",
   "scripts": {
     "test": "bun test/index.ts",
-    "build": "rimraf dist && tsc -p tsconfig-cm.json & tsc -p tsconfig-esm.json && ncp lib/types esm/types",
+    "build:ts": "tsc -p tsconfig-cm.json & tsc -p tsconfig-esm.json",
+    "build": "rimraf cm esm && npm run build:ts && ncp lib/types esm/types",
     "prepare": "pnpm run build"
   },
   "type": "module",

@@ -1,5 +1,5 @@
 import type { ProtoGen } from "pw-js-api";
-import type { Point } from "./types";
+import type { Point } from "./types/index.js";
 
 export interface IPlayer {
     /**

@@ -1,11 +1,11 @@
 import { BlockNames, type CustomBotEvents, Hook } from "pw-js-api";
 import type { ProtoGen } from "pw-js-api";//"../node_modules/pw-js-api/dist/gen/world_pb";
 
-import Block from "./Block";
-import BufferReader from "./BufferReader";
-import Player, { PlayerEffect } from "./Player";
-import { LayerType } from "./Constants";
-import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types";
+import Block from "./Block.js";
+import BufferReader from "./BufferReader.js";
+import Player, { PlayerEffect } from "./Player.js";
+import { LayerType } from "./Constants.js";
+import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
 
 /**
  * To use this helper, you must first create an instance of this,
