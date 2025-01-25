@@ -12,7 +12,7 @@
       "ES2021",
       "ES2022"
     ],
-    "module": "Node16",
+    "module": "ES6",
     "target": "ES6",
     "inlineSourceMap": true,
     "importHelpers": true,
@@ -23,7 +23,7 @@
     "esModuleInterop": true,
     "skipLibCheck": false,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node16",
+    "moduleResolution": "Bundler",
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
     "ignoreDeprecations": "5.0",
