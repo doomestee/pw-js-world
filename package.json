@@ -2,17 +2,16 @@
   "name": "pw-js-world",
   "version": "0.0.4",
   "description": "An optional package for PW-JS-Api, aims to serve world purposes.",
-  "main": "lib/index.ts",
   "scripts": {
     "test": "bun test/index.ts",
-    "build": "rimraf dist && tsc -p tsconfig.json && ncp lib/types dist/types",
-    "prepare": "pnpm run build"
+    "build:ts": "tsc -p tsconfig-cm.json & tsc -p tsconfig-esm.json",
+    "build": "rimraf cm esm && npm run build:ts && ncp lib/types esm/types",
+    "prepare": "npm run build"
   },
   "exports": {
-    "bun": "./dist/index.js",
-    "import": "./esm.mjs",
-    "require": "./dist/index.js",
-    "types": "./dist/index.d.ts"
+    "types": "./esm/index.js",
+    "import": "./esm/index.js",
+    "require": "./cm/index.js"
   },
   "keywords": [
     "PixelWalker",

@@ -1,7 +1,8 @@
 node_modules
 .vscode
 browser
-dist
 input
 test
 bun.lockb
+esm
+cm

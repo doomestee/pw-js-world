@@ -1,7 +1,7 @@
 import { BlockNames } from "pw-js-api";
-import type { BlockArg, Point, SendableBlockPacket } from "./types";
-import BufferReader, { ComponentTypeHeader } from "./BufferReader";
-import { LayerType } from "./Constants";
+import type { BlockArg, Point, SendableBlockPacket } from "./types/index.js";
+import BufferReader, { ComponentTypeHeader } from "./BufferReader.js";
+import { LayerType } from "./Constants.js";
 
 export default class Block {
     bId: number;
