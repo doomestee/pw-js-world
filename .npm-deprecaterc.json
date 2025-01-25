@@ -4,7 +4,7 @@
     "deprecateDistTag": false,
     "verbose": true,
     "package": [
-        "pw-js-api"
+        "pw-js-world"
     ],
     "message": "This version has been deprecated. Please use a newer version."
 }
