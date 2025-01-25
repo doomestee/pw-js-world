@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "dist",
+    "outDir": "cm",
     "lib": [
       "DOM",
       "ES2015",
