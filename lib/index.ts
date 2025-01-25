@@ -7,6 +7,7 @@ export { default as Block, BlockArgsHeadings } from "./Block.js";
 
 export { default as Player, PlayerEffect, IPlayer, IPlayerEffect, IPlayerRights, IPlayerWorldState } from "./Player.js";
 
+export * from "./Constants.js";
 export * as Constants from "./Constants.js";
 
 // import * from "./Helper";
