@@ -591,6 +591,10 @@ export default class PWGameWorldHelper {
         } satisfies SendableBlockPacket;
     }
 
+    /**
+     * Creates sendable packets from given blocks. Attempts to minimise packet count, so it's preferable
+     * to use it over creating packets with createBlockPacket multiple times.
+     */
     createBlockPackets(blocks: {block: Block, layer: LayerType, pos: Point}[]) : SendableBlockPacket[]{
         return blocks.reduce((acc: SendableBlockPacket[], block) => {
             const blockPacket = this.createBlockPacket(block.block, block.layer, block.pos)
