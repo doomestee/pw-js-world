@@ -6,6 +6,7 @@ import BufferReader from "./BufferReader.js";
 import Player, { PlayerEffect } from "./Player.js";
 import { LayerType } from "./Constants.js";
 import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
+import {uint8ArrayEquals} from "./Util.js";
 
 /**
  * To use this helper, you must first create an instance of this,
@@ -589,5 +590,35 @@ export default class PWGameWorldHelper {
             positions: pos,
             extraFields: Block.serializeArgs(blockId, args, { endian: "big", writeId: false, readTypeByte: true })
         } satisfies SendableBlockPacket;
+    }
+
+    /**
+     * Creates sendable packets from given blocks. Attempts to minimise packet count, so it's preferable
+     * to use it over creating packets with createBlockPacket multiple times.
+     */
+    createBlockPackets(blocks: {block: Block, layer: LayerType, pos: Point}[]) : SendableBlockPacket[]{
+        return blocks.reduce((acc: SendableBlockPacket[], block) => {
+            const blockPacket = this.createBlockPacket(block.block, block.layer, block.pos)
+
+            // Exact max packet position size is unknown, but it was noticed, it works correctly with this size
+            const MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE = 200
+            const existingPacket = acc.find(
+                (packet) =>
+                    packet.blockId === block.block.bId &&
+                    packet.layer === block.layer &&
+                    packet.positions.length < MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE &&
+                    uint8ArrayEquals(packet.extraFields!, blockPacket.extraFields!),
+            )
+
+            if (existingPacket) {
+                if (!existingPacket.positions.some((pos) => block.pos.x === pos.x && block.pos.y === pos.y)) {
+                    existingPacket.positions.push(block.pos)
+                }
+            } else {
+                acc.push(blockPacket)
+            }
+
+            return acc
+        }, [])
     }
 }
