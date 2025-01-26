@@ -590,4 +590,48 @@ export default class PWGameWorldHelper {
             extraFields: Block.serializeArgs(blockId, args, { endian: "big", writeId: false, readTypeByte: true })
         } satisfies SendableBlockPacket;
     }
+
+    createBlockPackets(blocks: {block: Block, layer: LayerType, pos: Point}[]) : SendableBlockPacket[]{
+        return blocks.reduce((acc: SendableBlockPacket[], block) => {
+            const blockPacket = this.createBlockPacket(block.block, block.layer, block.pos)
+
+            // Exact max packet position size is unknown, but it was noticed, it works correctly with this size
+            const MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE = 200
+            const existingPacket = acc.find(
+                (packet) =>
+                    packet.blockId === block.block.bId &&
+                    packet.layer === block.layer &&
+                    packet.positions.length < MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE &&
+                    this.uint8ArrayEquals(packet.extraFields!, blockPacket.extraFields!),
+            )
+
+            if (existingPacket) {
+                if (!existingPacket.positions.some((pos) => block.pos.x === pos.x && block.pos.y === pos.y)) {
+                    existingPacket.positions.push(block.pos)
+                }
+            } else {
+                acc.push(blockPacket)
+            }
+
+            return acc
+        }, [])
+    }
+
+    private uint8ArrayEquals(a: Uint8Array, b: Uint8Array): boolean {
+        if (a === b) {
+            return true
+        }
+
+        if (a.byteLength !== b.byteLength) {
+            return false
+        }
+
+        for (let i = 0; i < a.byteLength; i++) {
+            if (a[i] !== b[i]) {
+                return false
+            }
+        }
+
+        return true
+    }
 }
