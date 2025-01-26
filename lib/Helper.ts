@@ -6,6 +6,7 @@ import BufferReader from "./BufferReader.js";
 import Player, { PlayerEffect } from "./Player.js";
 import { LayerType } from "./Constants.js";
 import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
+import {uint8ArrayEquals} from "./Util.js";
 
 /**
  * To use this helper, you must first create an instance of this,
@@ -606,7 +607,7 @@ export default class PWGameWorldHelper {
                     packet.blockId === block.block.bId &&
                     packet.layer === block.layer &&
                     packet.positions.length < MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE &&
-                    this.uint8ArrayEquals(packet.extraFields!, blockPacket.extraFields!),
+                    uint8ArrayEquals(packet.extraFields!, blockPacket.extraFields!),
             )
 
             if (existingPacket) {
@@ -619,23 +620,5 @@ export default class PWGameWorldHelper {
 
             return acc
         }, [])
-    }
-
-    private uint8ArrayEquals(a: Uint8Array, b: Uint8Array): boolean {
-        if (a === b) {
-            return true
-        }
-
-        if (a.byteLength !== b.byteLength) {
-            return false
-        }
-
-        for (let i = 0; i < a.byteLength; i++) {
-            if (a[i] !== b[i]) {
-                return false
-            }
-        }
-
-        return true
     }
 }
