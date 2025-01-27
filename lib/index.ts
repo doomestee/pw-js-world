@@ -5,7 +5,7 @@ export { ComponentTypeHeader, default as BufferReader } from "./BufferReader.js"
 
 export { default as Block, BlockArgsHeadings } from "./Block.js";
 
-export { default as Player, PlayerEffect, IPlayer, IPlayerEffect, IPlayerRights, IPlayerWorldState } from "./Player.js";
+export { default as Player, PlayerEffect, type IPlayer, type IPlayerEffect, type IPlayerRights, type IPlayerWorldState } from "./Player.js";
 
 export * from "./Constants.js";
 export * as Constants from "./Constants.js";

@@ -2,12 +2,13 @@ import { BlockNames } from "pw-js-api";
 import type { BlockArg, Point, SendableBlockPacket } from "./types/index.js";
 import BufferReader, { ComponentTypeHeader } from "./BufferReader.js";
 import { LayerType } from "./Constants.js";
+import type { BlockKeys } from "./types/excluded.js";
 
 export default class Block {
     bId: number;
     args: BlockArg[] = [];
 
-    constructor(bId: number | keyof typeof BlockNames, args?: BlockArg[]) {
+    constructor(bId: number | BlockKeys, args?: BlockArg[]) {
         if (typeof bId === "number") this.bId = bId;
         else {
             this.bId = BlockNames[bId];
@@ -147,8 +148,8 @@ export default class Block {
      * 
      * For eg EFFECTS_INVULNERABILITY.
      */
-    get name() : keyof typeof BlockNames {
-        return BlockNames[this.bId] as keyof typeof BlockNames;
+    get name() : BlockKeys {
+        return BlockNames[this.bId] as BlockKeys;
     }
 
     /**

@@ -6,7 +6,7 @@ import BufferReader from "./BufferReader.js";
 import Player, { PlayerEffect } from "./Player.js";
 import { LayerType } from "./Constants.js";
 import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
-import {uint8ArrayEquals} from "./Util.js";
+import { DeserialisedStructure } from "./Structure.js";
 
 /**
  * To use this helper, you must first create an instance of this,
@@ -567,58 +567,28 @@ export default class PWGameWorldHelper {
     }
 
     /**
-     * For now this is slightly limited, but this will ONLY create a sendable packet which you must then send it yourself.
+     * This will return a DeserialisedStructure which will allow you to easily save to a file if you wish.
+     * 
+     * The blocks are cloned and thus you're free to modify the blocks in the structure without the risk of it affecting this helper's blocks.
+     * 
+     * NOTE: endX and endY are also included!
      */
-    createBlockPacket(blockId: number | BlockNames | keyof typeof BlockNames, layer: LayerType, pos: Point | Point[], ...args: BlockArg[]) : SendableBlockPacket;
-    createBlockPacket(block: Block, layer: LayerType, pos: Point | Point[]) : SendableBlockPacket;
-    createBlockPacket(blockId: number | BlockNames | keyof typeof BlockNames | Block, layer: LayerType, pos: Point | Point[], ...args: BlockArg[]) {
-        if (blockId instanceof Block) {
-            args = blockId.args;
-            blockId = blockId.bId
-        }
-        else if (typeof blockId !== "number") blockId = BlockNames[blockId];
+    sectionBlocks(startX: number, startY: number, endX: number, endY: number) {
+        const blocks: [Block[][], Block[][]] = [[], []];
 
-        if (blockId === undefined) throw Error("Unknown block ID");
-        if (layer === undefined || layer < 0 || layer > 1) throw Error("Unknown layer type");
+        if (startX > endX) throw Error("Starting X is greater than ending X");
+        if (startY > endY) throw Error("Starting Y is greater than ending Y");
 
-        if (!Array.isArray(pos)) pos = [pos];
+        for (let l = 0; l < 2; l++) {
+            for (let x = startX, width = Math.min(endX, this.width); x <= width; x++) {
+                blocks[l][x - startX] = [];
 
-        return {
-            isFillOperation: false,
-            blockId,
-            layer,
-            positions: pos,
-            extraFields: Block.serializeArgs(blockId, args, { endian: "big", writeId: false, readTypeByte: true })
-        } satisfies SendableBlockPacket;
-    }
-
-    /**
-     * Creates sendable packets from given blocks. Attempts to minimise packet count, so it's preferable
-     * to use it over creating packets with createBlockPacket multiple times.
-     */
-    createBlockPackets(blocks: {block: Block, layer: LayerType, pos: Point}[]) : SendableBlockPacket[]{
-        return blocks.reduce((acc: SendableBlockPacket[], block) => {
-            const blockPacket = this.createBlockPacket(block.block, block.layer, block.pos)
-
-            // Exact max packet position size is unknown, but it was noticed, it works correctly with this size
-            const MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE = 200
-            const existingPacket = acc.find(
-                (packet) =>
-                    packet.blockId === block.block.bId &&
-                    packet.layer === block.layer &&
-                    packet.positions.length < MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE &&
-                    uint8ArrayEquals(packet.extraFields!, blockPacket.extraFields!),
-            )
-
-            if (existingPacket) {
-                if (!existingPacket.positions.some((pos) => block.pos.x === pos.x && block.pos.y === pos.y)) {
-                    existingPacket.positions.push(block.pos)
+                for (let y = startY, height = Math.min(endY, this.height); y <= height; y++) {
+                    blocks[l][x - startX][y - startY] = this.blocks[l][x][y].clone();
                 }
-            } else {
-                acc.push(blockPacket)
             }
+        }
 
-            return acc
-        }, [])
+        return new DeserialisedStructure(blocks, { width: endX - startX + 1, height: endY - startY + 1 });
     }
 }

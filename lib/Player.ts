@@ -1,5 +1,6 @@
 import type { ProtoGen } from "pw-js-api";
 import type { Point } from "./types/index.js";
+import { map } from "./Util.js";
 
 export interface IPlayer {
     /**
@@ -225,7 +226,7 @@ export default class Player {
         } else this.states = {
             coinsBlue: states.coinsBlue,
             coinsGold: states.coinsGold,
-            collectedItems: states.collectedItems.map(v => ({ x: v.x, y: v.y })),
+            collectedItems: map(states.collectedItems, v => ({ x: v.x, y: v.y })),
             deaths: states.deaths,
             godmode: states.godmode,
             hasGoldCrown: states.hasGoldCrown,
