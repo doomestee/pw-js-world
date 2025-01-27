@@ -44,6 +44,15 @@ export function find<T>(arr: Array<T> | Map<any, T>, pred: (value: T, index: num
     return undefined;
 }
 
+export function findIndex<T>(arr: Array<T> | Map<any, T>, pred: (value: T, index: number, obj: T[]) => boolean) : number {
+    if (!Array.isArray(arr)) arr = Array.from(arr.values());
+
+    for (let i = 0, len = arr.length; i < len; i++) {
+        if (pred(arr[i], i, arr)) return i;
+    }
+    return -1;
+}
+
 /**
  * For now this is slightly limited, but this will ONLY create a sendable packet which you must then send it yourself.
  */
