@@ -101,7 +101,7 @@ export function createBlockPackets(blocks: { block: Block, layer: LayerType, pos
         )
 
         if (existingPacket) {
-            if (findIndex(existingPacket.positions, pos => block.pos.x === pos.x && block.pos.y === pos.y) !== -1) {
+            if (findIndex(existingPacket.positions, pos => block.pos.x === pos.x && block.pos.y === pos.y) === -1) {
                 existingPacket.positions.push(block.pos);
             }
         } else list.push(packet);
