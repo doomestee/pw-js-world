@@ -199,13 +199,13 @@ export const BlockArgsHeadings = {
     PORTAL_WORLD: [ComponentTypeHeader.String, ComponentTypeHeader.Int32],
 
     SWITCH_LOCAL_TOGGLE: [ComponentTypeHeader.Int32],
-    SWITCH_LOCAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Boolean],
-    SWITCH_LOCAL_RESETTER: [ComponentTypeHeader.Boolean],
+    SWITCH_LOCAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
+    SWITCH_LOCAL_RESETTER: [ComponentTypeHeader.Byte],
     SWITCH_LOCAL_DOOR: [ComponentTypeHeader.Int32],
     SWITCH_LOCAL_GATE: [ComponentTypeHeader.Int32],
     SWITCH_GLOBAL_TOGGLE: [ComponentTypeHeader.Int32],
-    SWITCH_GLOBAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Boolean],
-    SWITCH_GLOBAL_RESETTER: [ComponentTypeHeader.Boolean],
+    SWITCH_GLOBAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
+    SWITCH_GLOBAL_RESETTER: [ComponentTypeHeader.Byte],
     SWITCH_GLOBAL_DOOR: [ComponentTypeHeader.Int32],
     SWITCH_GLOBAL_GATE: [ComponentTypeHeader.Int32],
 
