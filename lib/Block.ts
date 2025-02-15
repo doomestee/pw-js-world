@@ -215,4 +215,7 @@ export const BlockArgsHeadings = {
     NOTE_DRUM: [ComponentTypeHeader.ByteArray],
     NOTE_PIANO: [ComponentTypeHeader.ByteArray],
     NOTE_GUITAR: [ComponentTypeHeader.ByteArray],
+
+    CUSTOM_SOLID_BG: [ComponentTypeHeader.Int32],
+    CUSTOM_CHECKER_BG: [ComponentTypeHeader.Int32],
 } as const;
