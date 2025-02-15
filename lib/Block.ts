@@ -93,6 +93,7 @@ export default class Block {
      * - Type Byte included
      */
     public static serializeArgs(bId: number, args: BlockArg[], options: { endian: "big"; writeId: false; readTypeByte: true }): Buffer;
+    public static serializeArgs(bId: number, args: BlockArg[], options: { endian: "little"; writeId: false; readTypeByte: true }): Buffer;
 
     public static serializeArgs(bId: number, args: BlockArg[], options?: { endian: "little" | "big"; writeId: boolean; readTypeByte: boolean }): Buffer {
         options ||= {
@@ -216,6 +217,6 @@ export const BlockArgsHeadings = {
     NOTE_PIANO: [ComponentTypeHeader.ByteArray],
     NOTE_GUITAR: [ComponentTypeHeader.ByteArray],
 
-    CUSTOM_SOLID_BG: [ComponentTypeHeader.Int32],
-    CUSTOM_CHECKER_BG: [ComponentTypeHeader.Int32],
+    CUSTOM_SOLID_BG: [ComponentTypeHeader.UInt32],
+    CUSTOM_CHECKER_BG: [ComponentTypeHeader.UInt32],
 } as const;

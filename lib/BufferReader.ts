@@ -20,6 +20,7 @@ export enum ComponentTypeHeader {
     Double = 6,
     Boolean = 7,
     ByteArray = 8,
+    UInt32 = 9
 }
 
 /**
@@ -111,7 +112,7 @@ export default class BufferReader {
     public static Int32(value: number = 0): Buffer {
         const buffer = BufferReader.alloc(5);
         buffer.writeUInt8(ComponentTypeHeader.Int32);
-        buffer.writeInt32BE(value);
+        buffer.writeUInt32BE(value);
         return buffer.toBuffer();
     }
 
@@ -177,6 +178,17 @@ export default class BufferReader {
      * @param {number} value
      * @returns {Buffer}
      */
+    public static UInt32(value: number = 0): Buffer {
+        const buffer = BufferReader.alloc(5);
+        buffer.writeUInt8(ComponentTypeHeader.UInt32);
+        buffer.writeInt32BE(value);
+        return buffer.toBuffer();
+    }
+
+    /**
+     * @param {number} value
+     * @returns {Buffer}
+     */
     public static Magic(value: number): Buffer {
         if (value === undefined) throw new Error('Received undefined magic byte')
         return Buffer.from([value]);
@@ -216,6 +228,8 @@ export default class BufferReader {
                 return this.Boolean(value as boolean);
             case ComponentTypeHeader.ByteArray:
                 return this.ByteArray(value as Buffer);
+            case ComponentTypeHeader.UInt32:
+                return this.UInt32(value as number);
         }
     }
 
@@ -585,6 +599,8 @@ export default class BufferReader {
                 return !!this.readUInt8();
             case ComponentTypeHeader.ByteArray:
                 return this.readDynamicBuffer();
+            case ComponentTypeHeader.UInt32:
+                return little ? this.readUInt32LE() : this.readUInt32BE();
         }
     }
 
@@ -739,6 +755,9 @@ export default class BufferReader {
                     break;
                 case ComponentTypeHeader.ByteArray:
                     arr.push(this.readDynamicBuffer());
+                    break;
+                case ComponentTypeHeader.UInt32:
+                    arr.push(this.readUInt32BE());
                     break;
                 default:
                     throw new Error(`While serializing a buffer for data, an unexpected type 0x${type.toString(16)} was read. Expected one of 0-8`);
