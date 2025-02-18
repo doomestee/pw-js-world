@@ -101,7 +101,7 @@ export default class BufferReader {
     public static Int16(value: number = 0): Buffer {
         const buffer = BufferReader.alloc(3);
         buffer.writeUInt8(ComponentTypeHeader.Int16);
-        buffer.writeUInt16BE(value);
+        buffer.writeInt16BE(value);
         return buffer.toBuffer();
     }
 
@@ -112,7 +112,7 @@ export default class BufferReader {
     public static Int32(value: number = 0): Buffer {
         const buffer = BufferReader.alloc(5);
         buffer.writeUInt8(ComponentTypeHeader.Int32);
-        buffer.writeUInt32BE(value);
+        buffer.writeInt32BE(value);
         return buffer.toBuffer();
     }
 
@@ -181,7 +181,7 @@ export default class BufferReader {
     public static UInt32(value: number = 0): Buffer {
         const buffer = BufferReader.alloc(5);
         buffer.writeUInt8(ComponentTypeHeader.UInt32);
-        buffer.writeInt32BE(value);
+        buffer.writeUInt32BE(value);
         return buffer.toBuffer();
     }
 
