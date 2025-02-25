@@ -56,20 +56,20 @@ export default class Block {
      * 
      * This is in Block class for organisation.
      */
-    static deserializeArgs(blockId: number, reader: BufferReader, flag = false) : BlockArg[] {
-        const format: ComponentTypeHeader[] = (BlockArgsHeadings as any)[BlockNames[blockId]];
+    static deserializeArgs(reader: BufferReader) : BlockArg[] {
+        // const args = 
 
-        const args = [];
+        return reader.deserialize();
 
-        for (let i = 0; i < (format?.length ?? 0); i++) {
-            if (flag) {
-                reader.expectUInt8(format[i]);
-            }
+        // for (let i = 0; i < (format?.length ?? 0); i++) {
+        //     if (flag) {
+        //         reader.expectUInt8(format[i]);
+        //     }
 
-            args[i] = reader.read(format[i], !flag);
-        }
+        //     args[i] = reader.read(format[i], !flag);
+        // }
 
-        return args;
+        // return args;
     }
     
     /**
@@ -220,44 +220,65 @@ export const BlockArgsHeadings = {
     CUSTOM_SOLID_BG: [ComponentTypeHeader.UInt32],
     CUSTOM_CHECKER_BG: [ComponentTypeHeader.UInt32],
 
+    // ew
     COUNTER_WHITE_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_WHITE_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_WHITE_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_WHITE_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_WHITE_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_WHITE_GATE: [ComponentTypeHeader.Int32],
     COUNTER_GRAY_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_GRAY_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_GRAY_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_GRAY_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_GRAY_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_GRAY_GATE: [ComponentTypeHeader.Int32],
     COUNTER_BLACK_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_BLACK_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_BLACK_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_BLACK_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_BLACK_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_BLACK_GATE: [ComponentTypeHeader.Int32],
     COUNTER_RED_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_RED_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_RED_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_RED_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_RED_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_RED_GATE: [ComponentTypeHeader.Int32],
     COUNTER_ORANGE_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_ORANGE_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_ORANGE_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_ORANGE_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_ORANGE_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_ORANGE_GATE: [ComponentTypeHeader.Int32],
     COUNTER_YELLOW_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_YELLOW_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_YELLOW_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_YELLOW_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_YELLOW_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_YELLOW_GATE: [ComponentTypeHeader.Int32],
     COUNTER_GREEN_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_GREEN_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_GREEN_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_GREEN_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_GREEN_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_GREEN_GATE: [ComponentTypeHeader.Int32],
     COUNTER_CYAN_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_CYAN_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_CYAN_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_CYAN_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_CYAN_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_CYAN_GATE: [ComponentTypeHeader.Int32],
     COUNTER_BLUE_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_BLUE_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_BLUE_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_BLUE_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_BLUE_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_BLUE_GATE: [ComponentTypeHeader.Int32],
     COUNTER_MAGENTA_CONSUMABLE: [ComponentTypeHeader.Int32],
+    COUNTER_MAGENTA_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_MAGENTA_REUSABLE: [ComponentTypeHeader.Int32],
+    COUNTER_MAGENTA_REUSABLE_SET: [ComponentTypeHeader.Int32],
     COUNTER_MAGENTA_DOOR: [ComponentTypeHeader.Int32],
     COUNTER_MAGENTA_GATE: [ComponentTypeHeader.Int32],
 } as const;

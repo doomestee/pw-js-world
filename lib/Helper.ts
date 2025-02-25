@@ -143,7 +143,7 @@ export default class PWGameWorldHelper {
                     const oldBlocks:Block[] = [];
                     const newBlocks:Block[] = [];
 
-                    const args = Block.deserializeArgs(blockId, BufferReader.from(extraFields), true);
+                    const args = Block.deserializeArgs(BufferReader.from(extraFields));//(blockId, BufferReader.from(extraFields), true);
 
                     for (let i = 0, len = positions.length; i < len; i++) {
                         const { x, y } = positions[i];
