@@ -3,7 +3,7 @@ import type { ProtoGen } from "pw-js-api";//"../node_modules/pw-js-api/dist/gen/
 
 import Block from "./Block.js";
 import BufferReader from "./BufferReader.js";
-import Player, { PlayerEffect } from "./Player.js";
+import Player, { PlayerCounters, PlayerEffect } from "./Player.js";
 import { LayerType } from "./Constants.js";
 import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
 import { DeserialisedStructure } from "./Structure.js";
@@ -165,8 +165,8 @@ export default class PWGameWorldHelper {
                     let player: Player;
 
                     if (properties && worldState) {
-                        this.players.set(properties.playerId, player = new Player(properties, { ...worldState, switches: this.convertSwitchState(worldState.switches) }));
-                        
+                        this.players.set(properties.playerId, player = new Player(properties, { ...worldState, switches: this.convertSwitchState(worldState.switches), counters: new PlayerCounters(worldState.counters) }));
+
                         return { player };
                     }
                 }
@@ -419,6 +419,20 @@ export default class PWGameWorldHelper {
                     }
 
                     return player ? { player } : {};
+                }
+            case "playerCounterTransactionPacket":
+                {
+                    const player = this.players.get(packet.value.playerId as number);
+
+                    if (player) {
+                        const oldScore = player.states.counters.scores[packet.value.counterId];
+
+                        player.states.counters.scores[packet.value.counterId] = packet.value.count;
+
+                        return { oldScore, diff: packet.value.count - oldScore, player };
+                    }
+
+                    return {};
                 }
             //#endregion
         }

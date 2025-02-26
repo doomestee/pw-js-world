@@ -121,6 +121,10 @@ export interface IPlayerWorldState {
      * ID of the team the player is associated with right now.
      */
     teamId: number;
+    /**
+     * Instance of counters associated with the player.
+     */
+    counters: PlayerCounters;
 }
 
 export interface IPlayerEffect {
@@ -234,6 +238,7 @@ export default class Player {
             modmode: states.modmode,
             switches: states.switches,
             teamId: states.teamId,
+            counters: states.counters
         };
     }
 
@@ -252,6 +257,7 @@ export default class Player {
             modmode: false,
             switches: new Array(1000).fill(false),
             teamId: 0,
+            counters: new PlayerCounters()
         }
     }
 
@@ -314,5 +320,42 @@ export class PlayerEffect {
         if (this.duration === undefined) return Infinity;
 
         return Math.max(0, Date.now() - (this.triggeredAt + this.duration));
+    }
+}
+
+/**
+ * Index based
+ */
+enum CounterKeys {
+    WHITE, GRAY, BLACK, RED, ORANGE, YELLOW, GREEN, CYAN, BLUE, MAGENTA
+}
+
+export class PlayerCounters {
+    readonly scores: number[] = [];
+
+    constructor(scores: number[] = []) {
+        for (let i = 0; i < 10; i++) {
+            this.scores[i] = scores[i] ?? 0;
+        }
+    }
+
+    /**
+     * Returns the current score of the player's counter for that colour.
+     * 
+     * Can be ID (counter id) or colour (use as predefined).
+     * 
+     * If the colour given is unknown, it will error. Capitalisation is irrelevant.
+     */
+    get(id: number) : number | undefined;
+    // get(id: "WHITE"|"GRAY"|"BLACK"|"RED"|"ORANGE"|"YELLOW"|"GREEN"|"CYAN"|"BLUE"|"MAGENTA") : number | undefined;
+    get(id: keyof typeof CounterKeys) : number | undefined;
+    get(id: number | keyof typeof CounterKeys) {
+        if (typeof id === "number") return this.scores[id];
+
+        const index = CounterKeys[id.toUpperCase() as keyof typeof CounterKeys];
+
+        if (index !== undefined) {
+            return this.scores[index];
+        } else throw Error("Unknown colour");
     }
 }

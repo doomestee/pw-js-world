@@ -46,4 +46,5 @@ export type PWGameHook = {
     playerChatPacket: { player: Player },
     playerDirectMessagePacket: { player: Player },
     playerTouchBlockPacket: { player: Player },
+    playerCounterTransactionPacket: { player: Player, oldScore: number, diff: number }
 };
