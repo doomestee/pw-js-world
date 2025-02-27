@@ -725,7 +725,7 @@ export default class BufferReader {
     public deserialize() {
         const arr: (string | number | boolean | Buffer | bigint)[] = [];
 
-        while (this.offset < this.length) {
+        while (this.length > 0) {
             const type = this.read7BitInt();
 
             switch (type) {
