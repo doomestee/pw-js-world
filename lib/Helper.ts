@@ -1,4 +1,4 @@
-import { BlockNames, type CustomBotEvents, Hook } from "pw-js-api";
+import { PWApiClient, type CustomBotEvents, type Hook } from "pw-js-api";
 import type { ProtoGen } from "pw-js-api";//"../node_modules/pw-js-api/dist/gen/world_pb";
 
 import Block from "./Block.js";
@@ -7,6 +7,7 @@ import Player, { PlayerCounters, PlayerEffect } from "./Player.js";
 import { LayerType } from "./Constants.js";
 import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
 import { DeserialisedStructure } from "./Structure.js";
+import { MissingBlockError } from "./util/Error.js";
 
 /**
  * To use this helper, you must first create an instance of this,
@@ -408,9 +409,11 @@ export default class PWGameWorldHelper {
                     const player = this.players.get(packet.value.playerId as number);
 
                     if (player && packet.value.position) {
-                        const blockName = BlockNames[packet.value.blockId];
+                        const blockName = PWApiClient.listBlocks?.[packet.value.blockId];
 
-                        if (blockName === "COIN_GOLD" || blockName === "COIN_BLUE") {
+                        if (blockName === undefined) throw new MissingBlockError("Current block data might be outdated, restart application?", packet.value.blockId);
+
+                        if (blockName.PaletteId === "COIN_GOLD" || blockName.PaletteId === "COIN_BLUE") {
                             player.states.collectedItems.push({
                                 x: packet.value.position.x,
                                 y: packet.value.position.y,

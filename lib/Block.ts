@@ -1,17 +1,17 @@
-import { BlockNames } from "pw-js-api";
 import type { BlockArg, Point, SendableBlockPacket } from "./types/index.js";
 import BufferReader, { ComponentTypeHeader } from "./BufferReader.js";
 import { LayerType } from "./Constants.js";
-import type { BlockKeys } from "./types/excluded.js";
+import { PWApiClient, type BlockKeys } from "pw-js-api";
+import { MissingBlockError } from "./util/Error.js";
 
 export default class Block {
     bId: number;
     args: BlockArg[] = [];
 
-    constructor(bId: number | BlockKeys, args?: BlockArg[]) {
+    constructor(bId: number | BlockKeys | string, args?: BlockArg[]) {
         if (typeof bId === "number") this.bId = bId;
         else {
-            this.bId = BlockNames[bId];
+            this.bId = Block.getIdByName(bId);
         }
 
         if (args) this.args = args;
@@ -110,7 +110,7 @@ export default class Block {
             buffer.push(idBuffer);
         }
 
-        const blockData:ComponentTypeHeader[] = (BlockArgsHeadings as any)[BlockNames[bId]] ?? [];
+        const blockData:ComponentTypeHeader[] = (BlockArgsHeadings as any)[this.name] ?? [];
 
         for (let i = 0, len = blockData.length; i < len; i++) {
             const entry = BufferReader.Dynamic(blockData[i], args[i]);
@@ -148,9 +148,16 @@ export default class Block {
      * This will return the block name in UPPER_CASE form.
      * 
      * For eg EFFECTS_INVULNERABILITY.
+     * 
+     * @throws {MissingBlockError}
+     * If the ID of this block is not known.
      */
-    get name() : BlockKeys {
-        return BlockNames[this.bId] as BlockKeys;
+    get name() : string {
+        const block = PWApiClient.listBlocks?.[this.bId];
+
+        if (block === undefined) throw new MissingBlockError("Current block data is missing, run Api#listBlocks first?", this.bId);
+
+        return block.PaletteId.toUpperCase();
     }
 
     /**
@@ -162,6 +169,22 @@ export default class Block {
         if (obj === true) return { bId: this.bId, args: this.args, name: this.name };
 
         return new Block(this.bId, this.args);
+    }
+
+    /**
+     * This can be convenient as it will always return the ID if it exists, and it will throw an error if it doesn't
+     * 
+     * This expects the name sent to be in full upper capital form though.
+     * 
+     * @throws {MissingBlockError}
+     * If the connection is unknown, this can be because you're trying to use this function when Api#getListBlocks has never been invoked, or the object is missing.
+     */
+    static getIdByName(paletteId: string) : number {
+        const block = PWApiClient.listBlocksObj?.[paletteId];
+
+        if (block === undefined) throw new MissingBlockError("Current block data is missing, run Api#listBlocks first?", paletteId);
+
+        return block.Id;
     }
 }
 

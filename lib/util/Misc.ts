@@ -1,8 +1,7 @@
-import { BlockNames } from "pw-js-api";
-import type { BlockKeys } from "./types/excluded";
-import type { LayerType } from "./Constants";
-import type { BlockArg, Point, SendableBlockPacket } from "./types";
-import Block from "./Block";
+import type { LayerType } from "../Constants";
+import type { BlockArg, Point, SendableBlockPacket } from "../types";
+import Block from "../Block";
+import type { BlockKeys } from "pw-js-api";
 
 export function uint8ArrayEquals(a: Uint8Array, b: Uint8Array): boolean {
     if (a === b) {
@@ -56,14 +55,16 @@ export function findIndex<T>(arr: Array<T> | Map<any, T>, pred: (value: T, index
 /**
  * For now this is slightly limited, but this will ONLY create a sendable packet which you must then send it yourself.
  */
-export function createBlockPacket(blockId: number | BlockNames | BlockKeys, layer: LayerType, pos: Point | Point[], ...args: BlockArg[]) : SendableBlockPacket;
+export function createBlockPacket(blockId: number | BlockKeys | string, layer: LayerType, pos: Point | Point[], ...args: BlockArg[]) : SendableBlockPacket;
 export function createBlockPacket(block: Block, layer: LayerType, pos: Point | Point[]) : SendableBlockPacket;
-export function createBlockPacket(blockId: number | BlockNames | BlockKeys | Block, layer: LayerType, pos: Point | Point[], ...args: BlockArg[]) {
+export function createBlockPacket(blockId: number | BlockKeys | string | Block, layer: LayerType, pos: Point | Point[], ...args: BlockArg[]) {
     if (blockId instanceof Block) {
         args = blockId.args;
         blockId = blockId.bId
     }
-    else if (typeof blockId !== "number") blockId = BlockNames[blockId];
+    else if (typeof blockId !== "number") {
+        blockId = Block.getIdByName(blockId);
+    }
 
     if (blockId === undefined) throw Error("Unknown block ID");
     if (layer === undefined || layer < 0 || layer > 1) throw Error("Unknown layer type");

@@ -1,8 +1,7 @@
 import Block from "./Block";
 import type { LayerType } from "./Constants";
 import type { BlockArg, Point } from "./types";
-import type { BlockKeys } from "./types/excluded";
-import { createBlockPackets } from "./Util";
+import { createBlockPackets } from "./util/Misc";
 
 /**
  * This is external to the main Helper, it will allow developers to use the structure without needing to use helper if they so wish.
@@ -128,7 +127,7 @@ export class DeserialisedStructure {
         const blocks:[[x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][]][] = [];
 
         const args:BlockArg[] = [];
-        const mapping:BlockKeys[] = [];
+        const mapping:string[] = [];
 
         // corresponds to the index in mapping array.
         const mappingDone = {} as Record<number, number>;
@@ -268,7 +267,7 @@ interface IStructureBlocks {
     /**
      * Index starts at 0, this is the mapping of blocks (in block name ids in UPPER_CASE)
      */
-    mapping: BlockKeys[];
+    mapping: string[];
 
     /**
      * Index starts at 0, this is the mapping of args (2nd elements and beyond in each block pos in blocks)
