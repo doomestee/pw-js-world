@@ -110,7 +110,7 @@ export default class Block {
             buffer.push(idBuffer);
         }
 
-        const blockData:ComponentTypeHeader[] = (BlockArgsHeadings as any)[this.name] ?? [];
+        const blockData:ComponentTypeHeader[] = (BlockArgsHeadings as any)[this.getPaletteIdById(bId)] ?? [];
 
         for (let i = 0, len = blockData.length; i < len; i++) {
             const entry = BufferReader.Dynamic(blockData[i], args[i]);
@@ -172,7 +172,7 @@ export default class Block {
     }
 
     /**
-     * This can be convenient as it will always return the ID if it exists, and it will throw an error if it doesn't
+     * This can be convenient as it will always return the ID if it exists, and it will throw an error if it doesn't.
      * 
      * This expects the name sent to be in full upper capital form though.
      * 
@@ -185,6 +185,22 @@ export default class Block {
         if (block === undefined) throw new MissingBlockError("Current block data is missing, run Api#listBlocks first?", paletteId);
 
         return block.Id;
+    }
+
+    /**
+     * This will return the corresponding palette id by the ID of that block.
+     * 
+     * The name sent will be in full upper capital if it exists.
+     * 
+     * @throws {MissingBlockError}
+     * If the connection is unknown, this can be because you're trying to use this function when Api#getListBlocks has never been invoked, or the object is missing.
+     */
+    static getPaletteIdById(blockId: number) : string {
+        const block = PWApiClient.listBlocks?.[blockId];
+
+        if (block === undefined) throw new MissingBlockError("Current block data is missing, run Api#listBlocks first?", blockId);
+
+        return block.PaletteId.toUpperCase();
     }
 }
 
