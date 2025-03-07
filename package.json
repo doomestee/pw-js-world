@@ -1,6 +1,6 @@
 {
   "name": "pw-js-world",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "An optional package for PW-JS-Api, aims to serve world purposes.",
   "scripts": {
     "test": "bun test/index.ts",
@@ -36,6 +36,6 @@
     "tslib": "~2.8.1"
   },
   "peerDependencies": {
-    "pw-js-api": ">=0.2.7"
+    "pw-js-api": ">=0.2.8"
   }
 }
