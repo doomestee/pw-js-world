@@ -12,7 +12,6 @@ export * as Util from "./util/Misc.js";
 
 export { DeserialisedStructure, type IStructure } from "./Structure.js";
 
-export * from "./Constants.js";
-export * as Constants from "./Constants.js";
+export { LayerType } from "./Constants.js";
 
 // import * from "./Helper";
