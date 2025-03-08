@@ -17,6 +17,11 @@ export default class StructureHelper {
      * @param data Buffer representing the JSON structure itself.
      */
     static read(data: Buffer | Uint8Array | IStructure) {
+        if (data instanceof Uint8Array) {
+            const decoder = new TextDecoder();
+            data = JSON.parse(decoder.decode(data));
+        }
+
         const json = "version" in data ? data : JSON.parse(data.toString()) as IStructure;
 
         if (json.version === undefined || json.version < 1 || json.version > 1) throw Error("Unknown file format");
@@ -197,6 +202,8 @@ export class DeserialisedStructure {
 
     /**
      * Buffer form of the structure.
+     * 
+     * Ideal for server runtimes (and browser if polyfilled)
      */
     toBuffer() {
         return Buffer.from(this.toJSONString());
@@ -222,7 +229,10 @@ export class DeserialisedStructure {
      * Uint8Array form of the structure.
      */
     toBytes() {
-        return Uint8Array.from(this.toJSONString())
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(this.toJSONString());
+
+        return bytes;
     }
 
     /**
