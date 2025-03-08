@@ -10,7 +10,7 @@ export { default as Player, PlayerEffect, PlayerCounters, type IPlayer, type IPl
 export { createBlockPacket, createBlockPackets } from "./util/Misc.js";
 export * as Util from "./util/Misc.js";
 
-export { DeserialisedStructure, type IStructure } from "./Structure.js";
+export { default as StructureHelper, DeserialisedStructure, type IStructure, type IStructureBlocks } from "./Structure.js";
 
 export * from "./Constants.js";
 export * as Constants from "./Constants.js";

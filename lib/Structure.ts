@@ -263,7 +263,7 @@ export interface IStructure {
     blocks: IStructureBlocks;
 }
 
-interface IStructureBlocks {
+export interface IStructureBlocks {
     /**
      * Index starts at 0, this is the mapping of blocks (in block name ids in UPPER_CASE)
      */
