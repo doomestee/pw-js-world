@@ -209,7 +209,7 @@ export default class Block {
      * If a block don't have args, it will return an empty array.
      */
     static getArgTypesByBlockId(blockId: number) : ComponentTypeHeader[] {
-        return (PWApiClient.listBlocks?.[blockId].BlockDataArgs) as ComponentTypeHeader[] ?? []
+        return (PWApiClient.listBlocks?.[blockId]?.BlockDataArgs) as ComponentTypeHeader[] ?? []
     }
 
     /**
@@ -220,6 +220,6 @@ export default class Block {
      * If a block don't have args, it will return an empty array.
      */
     static getArgTypesByPaletteId(paletteId: string) : ComponentTypeHeader[] {
-        return (PWApiClient.listBlocksObj?.[paletteId].BlockDataArgs) as ComponentTypeHeader[] ?? []
+        return (PWApiClient.listBlocksObj?.[paletteId]?.BlockDataArgs) as ComponentTypeHeader[] ?? []
     }
 }
