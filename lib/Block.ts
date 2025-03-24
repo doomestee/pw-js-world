@@ -211,7 +211,7 @@ export default class Block {
     static getArgTypesByBlockId(blockId: number) : ComponentTypeHeader[] {
         const block = PWApiClient.listBlocks?.[blockId];
         
-        return block ? MissingBlockData[block?.PaletteId] ?? (block?.BlockDataArgs) as ComponentTypeHeader[] ?? [] : [];
+        return block ? MissingBlockData[block?.PaletteId.toUpperCase()] ?? (block.BlockDataArgs) as ComponentTypeHeader[] ?? [] : [];
     }
 
     /**
