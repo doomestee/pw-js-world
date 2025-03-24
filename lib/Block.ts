@@ -209,7 +209,9 @@ export default class Block {
      * If a block don't have args, it will return an empty array.
      */
     static getArgTypesByBlockId(blockId: number) : ComponentTypeHeader[] {
-        return (PWApiClient.listBlocks?.[blockId]?.BlockDataArgs) as ComponentTypeHeader[] ?? []
+        const block = PWApiClient.listBlocks?.[blockId];
+        
+        return block ? MissingBlockData[block?.PaletteId] ?? (block?.BlockDataArgs) as ComponentTypeHeader[] ?? [] : [];
     }
 
     /**
@@ -220,6 +222,12 @@ export default class Block {
      * If a block don't have args, it will return an empty array.
      */
     static getArgTypesByPaletteId(paletteId: string) : ComponentTypeHeader[] {
-        return (PWApiClient.listBlocksObj?.[paletteId]?.BlockDataArgs) as ComponentTypeHeader[] ?? []
+        return MissingBlockData[paletteId] ?? (PWApiClient.listBlocksObj?.[paletteId].BlockDataArgs) as ComponentTypeHeader[] ?? []
     }
 }
+
+// Temporary fix as some blocks currently have incorrect args
+const MissingBlockData = {
+    SWITCH_LOCAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
+    SWITCH_GLOBAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
+} as Record<string, ComponentTypeHeader[]>;
