@@ -38,7 +38,7 @@ export default class Block {
     }
 
     protected deserializeArgs(reader: BufferReader, flag = false) : this {
-        const format: ComponentTypeHeader[] = (BlockArgsHeadings as any)[this.name];
+        const format: ComponentTypeHeader[] = Block.getArgTypesByBlockId(this.bId);//(BlockArgsHeadings as any)[this.name];
 
         for (let i = 0; i < (format?.length ?? 0); i++) {
             if (flag) {
@@ -110,7 +110,7 @@ export default class Block {
             buffer.push(idBuffer);
         }
 
-        const blockData:ComponentTypeHeader[] = (BlockArgsHeadings as any)[this.getPaletteIdById(bId)] ?? [];
+        const blockData:ComponentTypeHeader[] = Block.getArgTypesByBlockId(bId);
 
         for (let i = 0, len = blockData.length; i < len; i++) {
             const entry = BufferReader.Dynamic(blockData[i], args[i]);
@@ -202,122 +202,24 @@ export default class Block {
 
         return block.PaletteId.toUpperCase();
     }
+
+    /**
+     * Returns the arg types for that block by given block ID.
+     * 
+     * If a block don't have args, it will return an empty array.
+     */
+    static getArgTypesByBlockId(blockId: number) : ComponentTypeHeader[] {
+        return (PWApiClient.listBlocks?.[blockId].BlockDataArgs) as ComponentTypeHeader[] ?? []
+    }
+
+    /**
+     * Returns the arg types for that block by given palette ID (full upper case).
+     * 
+     * For eg "EMPTY" or "SIGN_GOLD"
+     * 
+     * If a block don't have args, it will return an empty array.
+     */
+    static getArgTypesByPaletteId(paletteId: string) : ComponentTypeHeader[] {
+        return (PWApiClient.listBlocksObj?.[paletteId].BlockDataArgs) as ComponentTypeHeader[] ?? []
+    }
 }
-
-/**
- * This mapping contains definitions of block data which require additional
- * arguments to be sent or received with.
- */
-export const BlockArgsHeadings = {
-    COIN_GOLD_DOOR: [ComponentTypeHeader.Int32],
-    COIN_BLUE_DOOR: [ComponentTypeHeader.Int32],
-    COIN_GOLD_GATE: [ComponentTypeHeader.Int32],
-    COIN_BLUE_GATE: [ComponentTypeHeader.Int32],
-
-    EFFECTS_JUMP_HEIGHT: [ComponentTypeHeader.Int32],
-    EFFECTS_FLY: [ComponentTypeHeader.Boolean],
-    EFFECTS_SPEED: [ComponentTypeHeader.Int32],
-    EFFECTS_INVULNERABILITY: [ComponentTypeHeader.Boolean],
-    EFFECTS_CURSE: [ComponentTypeHeader.Int32],
-    EFFECTS_ZOMBIE: [ComponentTypeHeader.Int32],
-    EFFECTS_GRAVITYFORCE: [ComponentTypeHeader.Int32],
-    EFFECTS_MULTI_JUMP: [ComponentTypeHeader.Int32],
-    // gravity effects no data
-    // effects off
-    // effects zombie
-
-    TOOL_PORTAL_WORLD_SPAWN: [ComponentTypeHeader.Int32],
-
-    SIGN_NORMAL: [ComponentTypeHeader.String],
-    SIGN_RED: [ComponentTypeHeader.String],
-    SIGN_GREEN: [ComponentTypeHeader.String],
-    SIGN_BLUE: [ComponentTypeHeader.String],
-    SIGN_GOLD: [ComponentTypeHeader.String],
-
-    PORTAL: [ComponentTypeHeader.Int32, ComponentTypeHeader.Int32, ComponentTypeHeader.Int32],
-    PORTAL_INVISIBLE: [ComponentTypeHeader.Int32, ComponentTypeHeader.Int32, ComponentTypeHeader.Int32],
-    PORTAL_WORLD: [ComponentTypeHeader.String, ComponentTypeHeader.Int32],
-
-    SWITCH_LOCAL_TOGGLE: [ComponentTypeHeader.Int32],
-    SWITCH_LOCAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
-    SWITCH_LOCAL_RESETTER: [ComponentTypeHeader.Byte],
-    SWITCH_LOCAL_DOOR: [ComponentTypeHeader.Int32],
-    SWITCH_LOCAL_GATE: [ComponentTypeHeader.Int32],
-    SWITCH_GLOBAL_TOGGLE: [ComponentTypeHeader.Int32],
-    SWITCH_GLOBAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
-    SWITCH_GLOBAL_RESETTER: [ComponentTypeHeader.Byte],
-    SWITCH_GLOBAL_DOOR: [ComponentTypeHeader.Int32],
-    SWITCH_GLOBAL_GATE: [ComponentTypeHeader.Int32],
-
-    HAZARD_DEATH_DOOR: [ComponentTypeHeader.Int32],
-    HAZARD_DEATH_GATE: [ComponentTypeHeader.Int32],
-
-    NOTE_DRUM: [ComponentTypeHeader.ByteArray],
-    NOTE_PIANO: [ComponentTypeHeader.ByteArray],
-    NOTE_GUITAR: [ComponentTypeHeader.ByteArray],
-
-    CUSTOM_SOLID_BG: [ComponentTypeHeader.UInt32],
-    CUSTOM_CHECKER_BG: [ComponentTypeHeader.UInt32],
-
-    // ew
-    COUNTER_WHITE_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_WHITE_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_WHITE_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_WHITE_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_WHITE_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_WHITE_GATE: [ComponentTypeHeader.Int32],
-    COUNTER_GRAY_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_GRAY_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_GRAY_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_GRAY_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_GRAY_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_GRAY_GATE: [ComponentTypeHeader.Int32],
-    COUNTER_BLACK_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_BLACK_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_BLACK_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_BLACK_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_BLACK_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_BLACK_GATE: [ComponentTypeHeader.Int32],
-    COUNTER_RED_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_RED_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_RED_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_RED_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_RED_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_RED_GATE: [ComponentTypeHeader.Int32],
-    COUNTER_ORANGE_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_ORANGE_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_ORANGE_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_ORANGE_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_ORANGE_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_ORANGE_GATE: [ComponentTypeHeader.Int32],
-    COUNTER_YELLOW_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_YELLOW_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_YELLOW_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_YELLOW_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_YELLOW_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_YELLOW_GATE: [ComponentTypeHeader.Int32],
-    COUNTER_GREEN_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_GREEN_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_GREEN_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_GREEN_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_GREEN_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_GREEN_GATE: [ComponentTypeHeader.Int32],
-    COUNTER_CYAN_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_CYAN_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_CYAN_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_CYAN_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_CYAN_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_CYAN_GATE: [ComponentTypeHeader.Int32],
-    COUNTER_BLUE_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_BLUE_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_BLUE_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_BLUE_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_BLUE_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_BLUE_GATE: [ComponentTypeHeader.Int32],
-    COUNTER_MAGENTA_CONSUMABLE: [ComponentTypeHeader.Int32],
-    COUNTER_MAGENTA_CONSUMABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_MAGENTA_REUSABLE: [ComponentTypeHeader.Int32],
-    COUNTER_MAGENTA_REUSABLE_SET: [ComponentTypeHeader.Int32],
-    COUNTER_MAGENTA_DOOR: [ComponentTypeHeader.Int32],
-    COUNTER_MAGENTA_GATE: [ComponentTypeHeader.Int32],
-} as const;
