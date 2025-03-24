@@ -157,8 +157,6 @@ export class DeserialisedStructure {
 
                     const toPut = [x, y] as [number, number, ...number[]];
 
-                    if (block.bId === 50) console.log(block.args);
-
                     for (let a = 0, argsLen = block.args.length; a < argsLen; a++) {
                         const arg = Buffer.isBuffer(block.args[a]) ? "\x00" + block.args[a].toString() : block.args[a];
 
@@ -273,7 +271,7 @@ export interface IStructure {
     blocks: IStructureBlocks;
 }
 
-interface IStructureBlocks {
+export interface IStructureBlocks {
     /**
      * Index starts at 0, this is the mapping of blocks (in block name ids in UPPER_CASE)
      */
