@@ -39,7 +39,7 @@ export default class StructureHelper {
     static deserialiseStructBlocks(struct: IStructureBlocks, width?: number, height?: number) {
         const { args, blocks, mapping } = struct;
 
-        const deBlocks = [[], []] as [Block[][], Block[][]];
+        const deBlocks = [[], [], []] as [Block[][], Block[][], Block[][]];
         
         let isMissing = width === undefined || height === undefined;
 
@@ -47,10 +47,12 @@ export default class StructureHelper {
             for (let x = 0; x < width; x++) {
                 deBlocks[0][x] = [];
                 deBlocks[1][x] = [];
+                deBlocks[2][x] = [];
 
                 for (let y = 0; y < height; y++) {
                     deBlocks[0][x][y] = new Block(0);
                     deBlocks[1][x][y] = new Block(0);
+                    deBlocks[2][x][y] = new Block(0);
                 }
             }
         }
@@ -90,10 +92,12 @@ export default class StructureHelper {
             for (let x = 0; x < big.x; x++) {
                 deBlocks[0][x] ??= [];
                 deBlocks[1][x] ??= [];
+                deBlocks[2][x] ??= [];
 
                 for (let y = 0; y < big.y; y++) {
                     deBlocks[0][x][y] ??= new Block(0);
                     deBlocks[1][x][y] ??= new Block(0);
+                    deBlocks[2][x][y] ??= new Block(0);
                 }
             }
 
@@ -114,12 +118,12 @@ export default class StructureHelper {
  * Represents the structure in its deserialised form, allows for modification
  */
 export class DeserialisedStructure {
-    blocks: [Block[][], Block[][]];
+    blocks: [Block[][], Block[][], Block[][]];
 
     width: number;
     height: number;
 
-    constructor(blocks: [Block[][], Block[][]], struct: Omit<IStructure, "version"|"blocks">) {
+    constructor(blocks: [Block[][], Block[][], Block[][]], struct: Omit<IStructure, "version"|"blocks">) {
         this.blocks = blocks;
         this.width = struct.width;
         this.height = struct.height;
@@ -129,7 +133,7 @@ export class DeserialisedStructure {
      * This will return a new object that meets IStructureBlocks interface.
      */
     getSerialisedBlocks() : IStructureBlocks {
-        const blocks:[[x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][]][] = [];
+        const blocks:[[x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][]][] = [];
 
         const args:BlockArg[] = [];
         const mapping:string[] = [];
@@ -148,7 +152,7 @@ export class DeserialisedStructure {
 
                     if (mappingDone[block.bId] === undefined) {
                         mappingDone[block.bId] = mapping.push(blockName) - 1;
-                        blocks[mappingDone[block.bId]] = [[], []];
+                        blocks[mappingDone[block.bId]] = [[], [], []];
                     }
 
                     const index = mappingDone[block.bId];
@@ -289,5 +293,9 @@ export interface IStructureBlocks {
      * 
      * If string, it's the encoded version of the object, use atob then JSON parse.
      */
-    blocks: [[x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][]][];
+    blocks: [
+        [x: number, y: number, ...argMapping: number[]][],
+        [x: number, y: number, ...argMapping: number[]][],
+        [x: number, y: number, ...argMapping: number[]][]
+    ][];
 }

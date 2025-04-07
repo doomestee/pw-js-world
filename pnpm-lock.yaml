@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       pw-js-api:
-        specifier: '>=0.2.9'
-        version: 0.2.9(ws@8.18.0)
+        specifier: '>=0.3.0'
+        version: 0.3.0(ws@8.18.0)
       tslib:
         specifier: ~2.8.1
         version: 2.8.1
@@ -335,8 +335,8 @@ packages:
     resolution: {integrity: sha512-y+WKFlBR8BGXnsNlIHFGPZmyDf3DFMoLhaflAnyZgV6rG6xu+JwesTo2Q9R6XwYmtmwAFCkAk3e35jEdoeh/3g==}
     engines: {node: '>=10'}
 
-  pw-js-api@0.2.9:
-    resolution: {integrity: sha512-bomxOogkYayLRdxoR9GrMheOC4epI7fRQnNoV1v+fiqwvB5ZLFCmkFA6mmRnFDPjPdlBrk3/CB5FYnOB5jAEtQ==}
+  pw-js-api@0.3.0:
+    resolution: {integrity: sha512-Xpopm8fQ2yhO21xtSOoH/xR+yzS9+SplboY/1zQuGjMhDOeslYy2aZMSsNXLugso5GuW34hShkdkfzBffy/yMg==}
 
   retry@0.12.0:
     resolution: {integrity: sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==}
@@ -793,7 +793,7 @@ snapshots:
       err-code: 2.0.3
       retry: 0.12.0
 
-  pw-js-api@0.2.9(ws@8.18.0):
+  pw-js-api@0.3.0(ws@8.18.0):
     dependencies:
       '@bufbuild/protobuf': 2.2.3
       isows: 1.0.6(ws@8.18.0)

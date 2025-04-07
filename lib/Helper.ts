@@ -452,7 +452,7 @@ export default class PWGameWorldHelper {
 
         this.blocks.splice(0);
 
-        for (let l = 0; l < 2; l++) {
+        for (let l = 0; l < 3; l++) {
             this.blocks[l] = [];
             for (let x = 0; x < width; x++) {
                 this.blocks[l][x] = [];
@@ -472,7 +472,7 @@ export default class PWGameWorldHelper {
     private deserialize(bytes: Uint8Array | Buffer | BufferReader) {
         const reader = bytes instanceof BufferReader ? bytes : BufferReader.from(bytes);
 
-        for (let l = 0; l < 2; l++) {
+        for (let l = 0; l < 3; l++) {
             for (let x = 0; x < this.width; x++) {
                 for (let y = 0; y < this.height; y++) {
                     this.blocks[l][x][y] = Block.deserialize(reader);
@@ -505,7 +505,7 @@ export default class PWGameWorldHelper {
         const lastWidth = this.width - 1;
         const lastHeight = this.width - 1;
 
-        for (let l = 0; l < 2; l++) {
+        for (let l = 0; l < 3; l++) {
             this.blocks[l] = [];
 
             for (let x = 0; x < this.width; x++) {
@@ -591,12 +591,12 @@ export default class PWGameWorldHelper {
      * NOTE: endX and endY are also included!
      */
     sectionBlocks(startX: number, startY: number, endX: number, endY: number) {
-        const blocks: [Block[][], Block[][]] = [[], []];
+        const blocks: [Block[][], Block[][], Block[][]] = [[], [], []];
 
         if (startX > endX) throw Error("Starting X is greater than ending X");
         if (startY > endY) throw Error("Starting Y is greater than ending Y");
 
-        for (let l = 0; l < 2; l++) {
+        for (let l = 0; l < 3; l++) {
             for (let x = startX, width = Math.min(endX, this.width); x <= width; x++) {
                 blocks[l][x - startX] = [];
 

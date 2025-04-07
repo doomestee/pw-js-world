@@ -67,7 +67,7 @@ export function createBlockPacket(blockId: number | BlockKeys | string | Block, 
     }
 
     if (blockId === undefined) throw Error("Unknown block ID");
-    if (layer === undefined || layer < 0 || layer > 1) throw Error("Unknown layer type");
+    if (layer === undefined || layer < 0 || layer > 2) throw Error("Unknown layer type");
 
     if (!Array.isArray(pos)) pos = [pos];
 
