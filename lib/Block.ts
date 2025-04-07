@@ -207,11 +207,15 @@ export default class Block {
      * Returns the arg types for that block by given block ID.
      * 
      * If a block don't have args, it will return an empty array.
+     * 
+     * If the block don't exist, it may throw an exception.
      */
     static getArgTypesByBlockId(blockId: number) : ComponentTypeHeader[] {
-        const block = PWApiClient.listBlocks?.[blockId];
+        return PWApiClient.listBlocks?.[blockId].BlockDataArgs ?? [];
+
+        // const block = PWApiClient.listBlocks?.[blockId];
         
-        return block ? MissingBlockData[block?.PaletteId.toUpperCase()] ?? (block.BlockDataArgs) as ComponentTypeHeader[] ?? [] : [];
+        // return block ? MissingBlockData[block?.PaletteId.toUpperCase()] ?? (block.BlockDataArgs) as ComponentTypeHeader[] ?? [] : [];
     }
 
     /**
@@ -220,14 +224,17 @@ export default class Block {
      * For eg "EMPTY" or "SIGN_GOLD"
      * 
      * If a block don't have args, it will return an empty array.
+     * 
+     * If the block don't exist, it may throw an exception.
      */
     static getArgTypesByPaletteId(paletteId: string) : ComponentTypeHeader[] {
-        return MissingBlockData[paletteId] ?? (PWApiClient.listBlocksObj?.[paletteId].BlockDataArgs) as ComponentTypeHeader[] ?? []
+        return PWApiClient.listBlocksObj?.[paletteId].BlockDataArgs ?? [];
+        //MissingBlockData[paletteId] ?? (PWApiClient.listBlocksObj?.[paletteId].BlockDataArgs) as ComponentTypeHeader[] ?? []
     }
 }
 
 // Temporary fix as some blocks currently have incorrect args
-const MissingBlockData = {
-    SWITCH_LOCAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
-    SWITCH_GLOBAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
-} as Record<string, ComponentTypeHeader[]>;
+// const MissingBlockData = {
+//     SWITCH_LOCAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
+//     SWITCH_GLOBAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
+// } as Record<string, ComponentTypeHeader[]>;
