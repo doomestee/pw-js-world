@@ -18,7 +18,7 @@ export default class PWGameWorldHelper {
     /**
      * Arrays of blocks (by layer, x, y)
      */
-    blocks: [Block[][], Block[][]] = [[], []];//Block[][][] = [];
+    blocks: [Block[][], Block[][], Block[][]] = [[], [], []];//Block[][][] = [];
 
     players = new Map<number, Player>();
 
