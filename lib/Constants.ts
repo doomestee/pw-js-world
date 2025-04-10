@@ -1,4 +1,5 @@
 export enum LayerType {
     Background,
-    Foreground
+    Foreground,
+    Overlay
 }
