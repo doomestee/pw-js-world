@@ -532,7 +532,7 @@ export default class PWGameWorldHelper {
             x = x.x;
         }
 
-        if (l === undefined || l < 0 || l > 1) throw Error("Unknown layer");
+        if (l === undefined || l < 0 || l > 2) throw Error("Unknown layer");
 
         if (x < 0 || x >= this.width) throw Error("X is outside the bound of the world.");
         if (y < 0 || y >= this.height) throw Error("Y is outside the bound of the world.");
