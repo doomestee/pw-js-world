@@ -1,7 +1,8 @@
-import Block from "./Block";
-import type { LayerType } from "./Constants";
-import type { BlockArg, Point } from "./types";
-import { createBlockPackets } from "./util/Misc";
+import Block from "./Block.js";
+import type { LayerType } from "./Constants.js";
+import type PWGameWorldHelper from "./Helper.js";
+import type { BlockArg, Point, SendableBlockPacket } from "./types";
+import { createBlockPackets } from "./util/Misc.js";
 
 /**
  * This is external to the main Helper, it will allow developers to use the structure without needing to use helper if they so wish.

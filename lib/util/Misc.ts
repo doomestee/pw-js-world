@@ -1,6 +1,6 @@
-import type { LayerType } from "../Constants";
+import type { LayerType } from "../Constants.js";
 import type { BlockArg, Point, SendableBlockPacket } from "../types";
-import Block from "../Block";
+import Block from "../Block.js";
 import type { BlockKeys } from "pw-js-api";
 
 export function uint8ArrayEquals(a: Uint8Array, b: Uint8Array): boolean {
