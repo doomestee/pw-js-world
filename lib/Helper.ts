@@ -364,7 +364,7 @@ export default class PWGameWorldHelper {
                     const player = this.players.get(packet.value?.playerId as number);
 
                     if (packet.case === "globalSwitchChangedPacket") {
-                        this.globalSwitches[packet.value.switchId] = packet.value.enabled;
+                        this.globalSwitches[packet.value.switchId] = packet.value.switchEnabled;
                     }
 
                     if (player) {
@@ -386,8 +386,7 @@ export default class PWGameWorldHelper {
 
                     if (player) {
                         if (packet.case === "playerLocalSwitchResetPacket") {
-                            if (packet.value.switchId === undefined) player.states.switches.fill(false);
-                            else player.states.switches[packet.value.switchId] = packet.value.switchEnabled;
+                            player.states.switches.fill(packet.value.switchEnabled);
                         }
 
                         return { player };
