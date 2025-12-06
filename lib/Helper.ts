@@ -8,6 +8,7 @@ import { LayerType } from "./Constants.js";
 import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
 import { DeserialisedStructure } from "./Structure.js";
 import { MissingBlockError } from "./util/Error.js";
+import { read7BitEncodedInt } from "./util/Misc.js";
 
 /**
  * To use this helper, you must first create an instance of this,
@@ -110,7 +111,7 @@ export default class PWGameWorldHelper {
                     this._width = packet.value.worldWidth;
                     this._meta = packet.value.worldMeta ?? null;
 
-                    this.initialise(packet.value.worldData);
+                    this.initialise(packet.value);
 
                     const props = packet.value.playerProperties;
 
@@ -128,7 +129,7 @@ export default class PWGameWorldHelper {
                 this._meta = packet.value.meta ?? null;
                 return;
             case "worldReloadedPacket":
-                this.initialise(packet.value.worldData);
+                this.initialise(packet.value);
                 return;
             case "worldClearedPacket":
                 this.clear();
@@ -137,26 +138,27 @@ export default class PWGameWorldHelper {
                 {
                     if (!this._init) return;
 
-                    const { positions, layer, blockId, extraFields, playerId } = packet.value;
+                    const { positions, layer, blockId, fields, playerId } = packet.value;
 
                     const player = this.players.get(playerId as number);
 
                     const oldBlocks:Block[] = [];
                     const newBlocks:Block[] = [];
 
-                    const args = Block.deserializeArgs(BufferReader.from(extraFields));//(blockId, BufferReader.from(extraFields), true);
-
                     for (let i = 0, len = positions.length; i < len; i++) {
                         const { x, y } = positions[i];
 
                         oldBlocks[i] = this.blocks[layer][x][y].clone();
-                        newBlocks[i] = this.blocks[layer][x][y] = new Block(blockId, args)
+                        newBlocks[i] = this.blocks[layer][x][y] = new Block(blockId, packet.value.fields);
                     }
+                    
+                    // console.log(`Block has been placed: ${blockId}, args:`, newBlocks[0].args);
 
                     if (!player) return;
 
                     return { player, oldBlocks, newBlocks };
                 }
+                // return;
             //#endregion
             //#region Player
             case "playerJoinedPacket":
@@ -444,8 +446,10 @@ export default class PWGameWorldHelper {
 
     /**
      * Internal function.
+     * 
+     * Yes th typing is cursed, I don't care as this is private.
      */
-    private initialise(bytes: Uint8Array, width?: number, height?: number) {
+    private initialise(bytes: Record<"backgroundLayerData"|"foregroundLayerData"|"overlayLayerData", Uint8Array<ArrayBufferLike>> & { blockDataPalette: ProtoGen.BlockDataInfo[] }, width?: number, height?: number) {
         if (width === undefined) width = this.width;
         if (height === undefined) height = this.height;
 
@@ -468,13 +472,41 @@ export default class PWGameWorldHelper {
     /**
      * Internal function.
      */
-    private deserialize(bytes: Uint8Array | Buffer | BufferReader) {
-        const reader = bytes instanceof BufferReader ? bytes : BufferReader.from(bytes);
+    private deserialize(bytes: Record<"backgroundLayerData"|"foregroundLayerData"|"overlayLayerData", Uint8Array<ArrayBufferLike> | Buffer> & { blockDataPalette: ProtoGen.BlockDataInfo[] }) {
+        /**
+         * Index based on the layer.
+         * For now since there's only 3 layers.
+         */
+        const data = [
+            Buffer.isBuffer(bytes.backgroundLayerData) ? bytes.backgroundLayerData : Buffer.from(bytes.backgroundLayerData),
+            Buffer.isBuffer(bytes.foregroundLayerData) ? bytes.foregroundLayerData : Buffer.from(bytes.foregroundLayerData),
+            Buffer.isBuffer(bytes.overlayLayerData) ? bytes.overlayLayerData : Buffer.from(bytes.overlayLayerData)
+        ];
 
-        for (let l = 0; l < 3; l++) {
-            for (let x = 0; x < this.width; x++) {
-                for (let y = 0; y < this.height; y++) {
-                    this.blocks[l][x][y] = Block.deserialize(reader);
+        let palette: ProtoGen.BlockDataInfo;
+        let runLength: number;
+        let offset = {
+            val: 0
+        };
+
+        for (let i = 0, l = 0; l < data.length; l++, i = 0) {
+            offset.val = 0;
+
+            while (data[l].byteLength - offset.val > 0) {
+                palette = bytes.blockDataPalette[read7BitEncodedInt(data[l], offset)];
+                runLength = (read7BitEncodedInt(data[l], offset));;
+
+                const b = new Block(palette.blockId, palette.fields);
+
+                while (runLength-- > 0) {
+                    let x = Math.floor(i / this._height);
+                    let y = i % this._height;
+
+                    if (x < this._width && y < this._height) {
+                        this.blocks[l][x][y] = b.clone();
+                    }
+
+                    i++;
                 }
             }
         }

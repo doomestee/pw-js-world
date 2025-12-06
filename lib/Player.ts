@@ -202,10 +202,10 @@ export default class Player {
         this.isFriend = props.isFriend;
         this.isWorldOwner = props.isWorldOwner;
         this.playerId = props.playerId;
-        this.position = props.position ? {
-            x: props.position.x,
-            y: props.position.y
-        } : undefined;
+        // this.position = props.position ? {
+        //     x: props.position.x,
+        //     y: props.position.y
+        // } : undefined;
 
         if (!props.rights) this.resetRights();
         else this.rights = {

@@ -33,9 +33,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "pw-js-api": "github:doomestee/pw-js-api#staging",
     "tslib": "~2.8.1"
-  },
-  "peerDependencies": {
-    "pw-js-api": ">=0.3.10"
   }
 }

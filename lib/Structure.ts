@@ -78,12 +78,14 @@ export default class StructureHelper {
 
                     const deBlock = deBlocks[l][block[0]][block[1]] = new Block(mapping[i]);
 
+                    const fields = Block.getFieldsByBlockId(deBlock.bId);
+
                     for (let a = 2, alen = block.length; a < alen; a++) {
                         let arg = args[block[a]];
 
-                        if (typeof arg === "string" && arg.startsWith("\x00")) arg = Buffer.from(arg.slice(1));
+                        if (typeof arg === "string" && arg.startsWith("\x00")) arg = Uint8Array.from(arg.slice(1));
 
-                        deBlock.args[a - 2] = arg;
+                        deBlock.args[fields[a - 2].Name] = arg;
                     }
                 }
             }
@@ -132,6 +134,8 @@ export class DeserialisedStructure {
 
     /**
      * This will return a new object that meets IStructureBlocks interface.
+     * 
+     * NOTE: This requires you to have called API getlistblocks (unless you have joined the world)
      */
     getSerialisedBlocks() : IStructureBlocks {
         const blocks:[[x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][]][] = [];
@@ -162,20 +166,37 @@ export class DeserialisedStructure {
 
                     const toPut = [x, y] as [number, number, ...number[]];
 
-                    for (let a = 0, argsLen = block.args.length; a < argsLen; a++) {
-                        const arg = Buffer.isBuffer(block.args[a]) ? "\x00" + block.args[a].toString() : block.args[a];
+                    // const keys = Object.keys(block.args);
+                    const args = Block.getArgsAsArray(block);
+
+                    for (let a = 0, argsLen = args.length; a < argsLen; a++) {
+                        const arg = (args[a] instanceof Uint8Array) ? "\x00" + args[a]?.toString() : args[a];
 
                         let argIndex = argDone.get(arg);
 
                         if (argIndex === undefined) {
-                            argDone.set(arg, args.push(arg) - 1);
-                            argIndex = argDone.get(arg);
+                            argIndex = argDone.set(arg, args.push(arg) - 1).get(arg);
                         }
 
-                        if (argIndex === undefined) throw Error("This should be impossible at this point.");
+                        if (argIndex === undefined) throw Error("This should be impossible at this point, but left for type safety.");
 
                         toPut[2 + a] = argIndex;
                     }
+
+                    // for (let a = 0, argsLen = keys.length; a < argsLen; a++) {
+                    //     const arg = Buffer.isBuffer(block.args[keys[a]]) ? "\x00" + block.args[keys[a]].toString() : block.args[keys[a]];
+
+                    //     let argIndex = argDone.get(arg);
+
+                    //     if (argIndex === undefined) {
+                    //         argDone.set(arg, args.push(arg) - 1);
+                    //         argIndex = argDone.get(arg);
+                    //     }
+
+                    //     if (argIndex === undefined)
+
+                    //     toPut[2 + a] = argIndex;
+                    // }
 
                     blocks[index][l].push(toPut);
                 }
@@ -241,13 +262,38 @@ export class DeserialisedStructure {
     /**
      * This will return a list of packets containing all of the blocks.
      */
-    toPackets(x: number, y: number) {
+    toPackets(x: number, y: number) : SendableBlockPacket[];
+    /**
+     * This will return a list of packets containing all of the blocks.
+     * 
+     * If you pass in the blocks (from PWGameWorldHelper) for the 3rd parameter, this will be used to check for any already placed blocks.
+     */
+    toPackets(x: number, y: number, helper: PWGameWorldHelper) : SendableBlockPacket[];
+    toPackets(x: number, y: number, helper?: PWGameWorldHelper) {
         const blockies:{ block: Block, layer: LayerType, pos: Point }[] = [];
 
-        for (let l = 0; l < this.blocks.length; l++) {
-            for (let x2 = 0; x2 < this.width; x2++) {
-                for (let y2 = 0; y2 < this.height; y2++) {
-                    blockies.push({ block: this.blocks[l][x2][y2], layer: l, pos: { x: x + x2, y: y + y2 } });
+        if (helper) {
+            const maxWidth = this.width + x;
+            const maxHeight = this.height + y;
+
+            for (let l = 0; l < helper.blocks.length; l++) {
+                for (let x2 = x; x2 < helper.width && x2 < maxWidth; x2++) {
+                    for (let y2 = y; y2 < helper.height && y2 < maxHeight; y2++) {
+                        const currBlock = helper.blocks[l][x2][y2];
+                        const structBlock = this.blocks[l][x2 - x][y2 - y];
+
+                        if (!currBlock.compareTo(structBlock))
+                            blockies.push({ block: helper.blocks[l][x2][y2], layer: l, pos: { x: x2, y: y2 } });
+                    }
+                }
+            }
+        }
+        else {
+            for (let l = 0; l < this.blocks.length; l++) {
+                for (let x2 = 0; x2 < this.width; x2++) {
+                    for (let y2 = 0; y2 < this.height; y2++) {
+                        blockies.push({ block: this.blocks[l][x2][y2], layer: l, pos: { x: x + x2, y: y + y2 } });
+                    }
                 }
             }
         }
@@ -288,7 +334,8 @@ export interface IStructureBlocks {
     args: BlockArg[];
 
     /**
-     * If array, it's index corresponds to the mapping, the element will be array of locations and args indexed by layers (while impossible, it's for possible compatibility with mirrored blocks, foreground block in background layer etc)
+     * If array, it's index corresponds to the mapping, the element will be array of locations and args indexed by layers
+     * (while impossible, it's for possible compatibility with mirrored blocks, foreground block in background layer etc)
      * 
      * If argMapping exists in a block, it'll be an index that corresponds to the block's arguments in args array.
      * 
