@@ -169,7 +169,7 @@ export default class Player {
      */
     isFriend: boolean;
     /**
-     * Position of the user.
+     * Current last known position of the player.
      * 
      * Note: This helper does not simulate physics so positions will always be inaccurate.
      */
@@ -179,7 +179,7 @@ export default class Player {
      */
     isWorldOwner: boolean;
     /**
-     * Rights
+     * Player's rights in the world.
      */
     rights!: IPlayerRights;
     /**
@@ -203,9 +203,9 @@ export default class Player {
         this.isFriend = props.isFriend;
         this.isWorldOwner = props.isWorldOwner;
         this.playerId = props.playerId;
-        this.position = props.position ? {
-            x: props.position.x,
-            y: props.position.y
+        this.position = props.lastMovementPacket?.position ? {
+            x: props.lastMovementPacket?.position.x,
+            y: props.lastMovementPacket?.position.y
         } : undefined;
 
         if (!props.rights) this.resetRights();
