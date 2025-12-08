@@ -4,7 +4,7 @@ import type { ProtoGen } from "pw-js-api";//"../node_modules/pw-js-api/dist/gen/
 import Block from "./Block.js";
 import BufferReader from "./BufferReader.js";
 import Player, { PlayerCounters, PlayerEffect } from "./Player.js";
-import { LayerType } from "./Constants.js";
+import { EffectId, LayerType } from "./Constants.js";
 import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
 import { DeserialisedStructure } from "./Structure.js";
 import { MissingBlockError } from "./util/Error.js";
@@ -211,39 +211,73 @@ export default class PWGameWorldHelper {
                     }
                 }
                 return;
-            case "playerAddEffectPacket": case "playerRemoveEffectPacket": case "playerResetEffectsPacket":
+            case "playerAddEffectPacket":
                 {
                     const player = this.players.get(packet.value?.playerId as number);
 
-                    if (player) {
-                        // const state = //packet.case === "playerGodModePacket" ? "godmode" : "modmode";
+                    if (player === undefined) return;
 
-                        let effects:PlayerEffect[] = [];
+                    const eff = new PlayerEffect({
+                        effectId: packet.value.effectId,
+                        duration: packet.value.duration,
+                        strength: packet.value.strength,
+                    });
 
-                        if (packet.case === "playerAddEffectPacket") {
-                            const eff = {
-                                effectId: packet.value.effectId,
-                                duration: packet.value.duration,
-                                strength: packet.value.strength,
-                            };
+                    // const prevEff = player.effects.get(eff.effectId);
 
-                            player.effects.push(new PlayerEffect(eff));
+                    // if (prevEff) {
+                    //     // Cos mutability.
+                    //     prevEff._update(eff);
 
-                            return { player, effect: eff };
-                        } else if (packet.case === "playerRemoveEffectPacket") {
-                            const eff = player.effects.findIndex(v => v.effectId === packet.value.effectId);
+                    //     return { player, effect: prevEff };
+                    // }
 
-                            if (eff) {
-                                effects = player.effects.splice(eff, 1);
+                    if (eff.effectId === EffectId.Invulnerability) {
+                        // maybe a better way to do this?
+                        // TODO: return the affected effects?
+                        player.effects.delete(EffectId.Curse);
+                        player.effects.delete(EffectId.Zombie);
+                        player.effects.delete(EffectId.Poison);
+                    }
 
-                                return { player, effect: effects[0] };
-                            }
-                        } else {
-                            return { player, effects: player.effects.splice(0) };
-                        }
+                    return { player, effect: eff };
+                }
+            case "playerRemoveEffectPacket":
+                {
+                    const player = this.players.get(packet.value?.playerId as number);
+
+                    if (player === undefined) return;
+
+                    const eff = player.effects.get(packet.value.effectId);
+
+                    if (eff !== undefined) {
+                        player.effects.delete(packet.value.effectId);
+
+                        return { player, effect: eff };
                     }
                 }
                 return;
+            case "playerResetEffectsPacket":
+                {
+                    const player = this.players.get(packet.value?.playerId as number);
+
+                    if (player === undefined) return;
+
+                    // const state = //packet.case === "playerGodModePacket" ? "godmode" : "modmode";
+                    let effects:PlayerEffect[] = [];
+
+                    const currEffects = Array.from(player.effects.values());
+
+                    for (let i = 0; i < currEffects.length; i++) {
+                        // for now its just curse/poison/zombie (all timed).
+                        if (currEffects[i].duration !== undefined) continue;
+
+                        effects.push(currEffects[i]);
+                        player.effects.delete(currEffects[i].effectId);
+                    }
+
+                    return { player, effects: effects };
+                }
             case "playerMovedPacket":
                 {
                     const player = this.players.get(packet.value?.playerId as number);

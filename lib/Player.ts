@@ -1,6 +1,7 @@
 import type { ProtoGen } from "pw-js-api";
 import type { Point } from "./types/index.js";
 import { map } from "./util/Misc.js";
+import { EffectId } from "./Constants.js";
 
 export interface IPlayer {
     /**
@@ -49,7 +50,7 @@ export interface IPlayer {
     /**
      * List of active effects the player has.
      */
-    effects: PlayerEffect[];
+    effects: Map<number, PlayerEffect>;
 
     /**
      * If this player is the bot.
@@ -189,7 +190,7 @@ export default class Player {
     /**
      * List of active effects the player has.
      */
-    effects:PlayerEffect[] = [];
+    effects:Map<EffectId, PlayerEffect> = new Map();
 
     /**
      * If this player is the bot.
@@ -279,7 +280,7 @@ export class PlayerEffect {
     /**
      * The ID of the effect.
      */
-    effectId: number;
+    effectId: EffectId;
     /**
      * If applicable, the duration of the effect.
      */
@@ -320,6 +321,23 @@ export class PlayerEffect {
         if (this.duration === undefined) return Infinity;
 
         return Math.max(0, Date.now() - (this.triggeredAt + this.duration));
+    }
+
+    /**
+     * @ignore
+     */
+    _update(obj: Partial<IPlayerEffect>) {
+        if (obj.duration !== undefined) this.duration = obj.duration;
+        if (obj.strength !== undefined) this.strength = obj.strength;
+    }
+
+    toJSON() {
+        const obj:IPlayerEffect = { effectId: this.effectId };
+
+        if (this.duration) obj["duration"] = this.duration;
+        if (this.strength) obj["strength"] = this.strength;
+
+        return obj;
     }
 }
 
