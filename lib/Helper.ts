@@ -367,13 +367,15 @@ export default class PWGameWorldHelper {
 
                     if (player) {
                         const oldState = {
-                            coinsBlue: player.states.coinsBlue,
-                            coinsGold: player.states.coinsGold,
+                            coins: {
+                                blue: player.states.coins.blue,
+                                gold: player.states.coins.gold,
+                            },
                             deaths: player.states.deaths,
                         }
 
-                        player.states.coinsBlue = packet.value.blueCoins;
-                        player.states.coinsGold = packet.value.coins;
+                        player.states.coins.blue = packet.value.blueCoins;
+                        player.states.coins.gold = packet.value.coins;
                         player.states.deaths = packet.value.deaths;
 
                         return { player, oldState };
@@ -471,6 +473,17 @@ export default class PWGameWorldHelper {
                     }
 
                     return {};
+                }
+            case "playerSetCollectiblesPacket":
+                {
+                    const player = this.players.get(packet.value.playerId as number);
+
+                    if (!player) return {};
+
+                    // not sure what to do?
+
+                    // packet.value.collected
+                    // console.log(packet.value.collected);
                 }
             //#endregion
         }

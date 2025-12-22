@@ -7,15 +7,15 @@ export interface IPlayer {
     /**
      * ID of the player.
      */
-    playerId: number;
+    readonly playerId: number;
     /**
      * ID of the player's account.
      */
-    accountId: string;
+    readonly accountId: string;
     /**
      * Name of the player.
      */
-    username: string;
+    readonly username: string;
     /**
      * ID of the player's equipped smiley.
      */
@@ -37,7 +37,7 @@ export interface IPlayer {
     /**
      * If player is the world owner.
      */
-    isWorldOwner: boolean;
+    readonly isWorldOwner: boolean;
     /**
      * Rights
      */
@@ -83,13 +83,18 @@ export interface IPlayerRights {
 
 export interface IPlayerWorldState {
     /**
-     * Number of gold coins the player has.
+     * Stores the current collected coins the player has.
      */
-    coinsGold: number;
-    /**
-     * Number of blue coins the player has.
-     */
-    coinsBlue: number;
+    coins: {
+        /**
+         * Number of gold coins the player has.
+         */
+        gold: number;
+        /**
+         * Number of blue coins the player has.
+         */
+        blue: number;
+    }
     /**
      * Number of times the player died.
      */
@@ -197,7 +202,7 @@ export default class Player {
      */
     isMe: boolean = false;
 
-    constructor(props: ProtoGen.PlayerProperties, states?: IPlayerWorldState | boolean) {
+    constructor(props: ProtoGen.PlayerProperties, states?: (Omit<ProtoGen.PlayerWorldState, "switches"|"counters"> & { switches: boolean[], counters: PlayerCounters }) | boolean) {
         this.accountId = props.accountId;
         this.face = props.face;
         this.isFriend = props.isFriend;
@@ -229,8 +234,10 @@ export default class Player {
             // Could be bot via init that don't get states.
             this.resetState()
         } else this.states = {
-            coinsBlue: states.coinsBlue,
-            coinsGold: states.coinsGold,
+            coins: {
+                blue: states.coinsBlue,
+                gold: states.coinsGold,
+            },
             collectedItems: map(states.collectedItems, v => ({ x: v.x, y: v.y })),
             deaths: states.deaths,
             godmode: states.godmode,
@@ -248,8 +255,10 @@ export default class Player {
      */
     resetState() {
         this.states = {
-            coinsBlue: 0,
-            coinsGold: 0,
+            coins: {
+                blue: 0,
+                gold: 0
+            },
             collectedItems: [],
             deaths: 0,
             godmode: false,
