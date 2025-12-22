@@ -1,5 +1,6 @@
 // I cba so all of the typings will go here
 
+import { OmitRecursively, ProtoGen } from "pw-js-api";
 import Block from "../Block.js";
 import Player, { IPlayerEffect, IPlayerRights } from "../Player.js";
 
@@ -16,10 +17,10 @@ export interface SendableBlockPacket {
      * Note: (I THINK) 250 positions limit.
      */
     positions: Point[];
-    extraFields?: Uint8Array;
+    fields: OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName">
 }
 
-export type BlockArg = (string | number | bigint | boolean | Buffer);
+export type BlockArg = (string | number | boolean | Uint8Array | undefined);
 
 export type PWGameHook = {
     worldBlockPlacedPacket: { player: Player, oldBlocks: Block[], newBlocks: Block[] },

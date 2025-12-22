@@ -1,128 +1,171 @@
 import type { BlockArg, Point, SendableBlockPacket } from "./types/index.js";
 import BufferReader, { ComponentTypeHeader } from "./BufferReader.js";
 import { LayerType } from "./Constants.js";
-import { PWApiClient, type BlockKeys } from "pw-js-api";
+import { AnyBlockField, OmitRecursively, ProtoGen, PWApiClient, type BlockKeys } from "pw-js-api";
 import { MissingBlockError } from "./util/Error.js";
+import { compareObjs, listedFieldTypeToGameType } from "./util/Misc.js";
 
 export default class Block {
     bId: number;
-    args: BlockArg[] = [];
+    /**
+     * NOTE as of October 2025, this is an object NOT an array.
+     * 
+     * Stores the arguments
+     */
+    args: Record<string, BlockArg> = {};
 
-    constructor(bId: number | BlockKeys | string, args?: BlockArg[]) {
+    constructor(bId: number | BlockKeys | string, args?: BlockArg[] | OmitRecursively<Record<string, ProtoGen.BlockFieldValue>, "$typeName"|"$unknown">) {
         if (typeof bId === "number") this.bId = bId;
         else {
             this.bId = Block.getIdByName(bId);
         }
 
-        if (args) this.args = args;
+        if (args) {
+            // LEGACY SUPPORT
+            if (Array.isArray(args)) {
+                args = Block.getArgsAsFields(this);
+            }// else {
+                const keys = Object.keys(args);
+
+                if (keys.length > 0) {
+                    for (let i = 0, ken = keys.length; i < ken; i++) {
+                        const arg = args[keys[i]];
+                        const val = arg.value;
+
+                        switch (arg.value.case) {
+                            default:
+                                // TODO: error handling?
+                            case "boolValue": case "byteArrayValue": case "stringValue":
+                            case "uint32Value": case "int32Value":
+                                this.args[keys[i]] = val.value as NonNullable<ProtoGen.BlockFieldValue["value"]["value"]>;
+                        }
+                    }
+                }
+            //}
+        }
     }
 
     /**
-     * I mean... Just use .args.length !== 0 to see if it has args.
-     * 
-     * But anyway, this will return true if there is at least one args, otherwise false.
+     * True if there is at least one argument, otherwise false.
      */
     hasArgs() : boolean {
-        return this.args.length !== 0;
+        return Object.keys(this.args).length > 0;
     }
 
     /**
-     * For helper.
-     * 
-     * This is in Block class for organisation.
-     * 
-     * This will deserialise by using the reader to get the block ID then retrieve the args, if applicable.
+     * This is for the fields parameter in sending world block placement.
      */
-    static deserialize(reader: BufferReader) : Block {
-        return new Block(reader.readUInt32LE()).deserializeArgs(reader);
-    }
+    static getArgsAsFields(block: Block) : OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> 
+    static getArgsAsFields(bId: number, args?: Record<string, BlockArg>) : OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> 
+    static getArgsAsFields(bId: number | Block, args?: Record<string, BlockArg>) {
+        if (bId instanceof Block) {
+            args = bId.args;
+            bId = bId.bId;
+        }
 
-    protected deserializeArgs(reader: BufferReader, flag = false) : this {
-        const format: ComponentTypeHeader[] = Block.getArgTypesByBlockId(this.bId);//(BlockArgsHeadings as any)[this.name];
+        if (args === undefined) return {};
 
-        for (let i = 0; i < (format?.length ?? 0); i++) {
-            if (flag) {
-                reader.expectUInt8(format[i]);
+        const fields = Block.getFieldsByBlockId(bId);
+
+        const obj:OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> = {};
+
+        for (let i = 0, len = fields.length; i < len; i++) {
+            const f = fields[i];
+
+            if (f.Required === true && args[f.Name] === undefined) throw Error(`Missing argument: ${f.Name} (Type: ${f.Type})`);
+            else if (f.Required === false && args[f.Name] === undefined) continue;
+
+            obj[f.Name] = {
+                value: {
+                    case: listedFieldTypeToGameType(f.Type),
+                    value: args[f.Name]
+                } as { case: "uint32Value", value: number }
             }
-
-            this.args[i] = reader.read(format[i], !flag);
         }
 
-        return this;
-    }
-    
-    /**
-     * For helper.
-     * 
-     * This is in Block class for organisation.
-     */
-    static deserializeArgs(reader: BufferReader) : BlockArg[] {
-        // const args = 
-
-        return reader.deserialize();
-
-        // for (let i = 0; i < (format?.length ?? 0); i++) {
-        //     if (flag) {
-        //         reader.expectUInt8(format[i]);
-        //     }
-
-        //     args[i] = reader.read(format[i], !flag);
-        // }
-
-        // return args;
-    }
-    
-    /**
-     * Serializes the block into a buffer. This is used to convert
-     * the block into a binary format that can be sent over the game
-     * server. As this is static, block id and args are required.
-     *
-     * - Little Endian
-     * - With Id
-     * - Type Byte omitted
-     */
-    public static serializeArgs(bId: number, args: BlockArg[]): Buffer;
-
-    /**
-     * Serializes the block into a buffer. This is used to convert
-     * the block into a binary format that can be sent over the game
-     * server. As this is static, block id and args are required.
-     *
-     * - Big Endian
-     * - No Id
-     * - Type Byte included
-     */
-    public static serializeArgs(bId: number, args: BlockArg[], options: { endian: "big"; writeId: false; readTypeByte: true }): Buffer;
-    public static serializeArgs(bId: number, args: BlockArg[], options: { endian: "little"; writeId: false; readTypeByte: true }): Buffer;
-
-    public static serializeArgs(bId: number, args: BlockArg[], options?: { endian: "little" | "big"; writeId: boolean; readTypeByte: boolean }): Buffer {
-        options ||= {
-            endian: "little",
-            writeId: true,
-            readTypeByte: false,
-        };
-
-        const buffer: Buffer[] = [];
-
-        if (options.writeId) {
-            const idBuffer = Buffer.alloc(4);
-            idBuffer.writeUInt32LE(bId);
-            buffer.push(idBuffer);
-        }
-
-        const blockData:ComponentTypeHeader[] = Block.getArgTypesByBlockId(bId);
-
-        for (let i = 0, len = blockData.length; i < len; i++) {
-            const entry = BufferReader.Dynamic(blockData[i], args[i]);
-            buffer.push(entry);
-        }
-
-        return Buffer.concat(buffer);
+        return obj;
     }
 
     /**
      * 
-     * @param pos List of points (X and Y)
+     */
+    static getArgsAsArray(block: Block) : BlockArg[]
+    static getArgsAsArray(bId: number, args?: Record<string, BlockArg>) : BlockArg[]
+    static getArgsAsArray(bId: number | Block, args?: Record<string, BlockArg>) {
+        if (bId instanceof Block) {
+            args = bId.args;
+            bId = bId.bId;
+        }
+
+        if (args === undefined) return [];
+
+        const arr:BlockArg[] = [];
+        const fields = Block.getFieldsByBlockId(bId);
+
+        for (let i = 0, len = fields.length; i < len; i++) {
+            const f = fields[i];
+            const val = args[f.Name];
+
+            if (f.Required === true && val === undefined) throw Error(`Missing argument: ${f.Name} (Type: ${f.Type})`);
+            else if (f.Required === false && args[f.Name] === undefined) arr.push(undefined);
+
+            arr.push(args[fields[i].Name])
+        }
+
+        return arr;
+    }
+
+    // /**
+    //  * Serializes the block into a buffer. This is used to convert
+    //  * the block into a binary format that can be sent over the game
+    //  * server. As this is static, block id and args are required.
+    //  *
+    //  * - Little Endian
+    //  * - With Id
+    //  * - Type Byte omitted
+    //  */
+    // public static serializeArgs(bId: number, args: BlockArg[]): Buffer;
+
+    // /**
+    //  * Serializes the block into a buffer. This is used to convert
+    //  * the block into a binary format that can be sent over the game
+    //  * server. As this is static, block id and args are required.
+    //  *
+    //  * - Big Endian
+    //  * - No Id
+    //  * - Type Byte included
+    //  */
+    // public static serializeArgs(bId: number, args: BlockArg[], options: { endian: "big"; writeId: false; readTypeByte: true }): Buffer;
+    // public static serializeArgs(bId: number, args: BlockArg[], options: { endian: "little"; writeId: false; readTypeByte: true }): Buffer;
+
+    // public static serializeArgs(bId: number, args: BlockArg[], options?: { endian: "little" | "big"; writeId: boolean; readTypeByte: boolean }): Buffer {
+    //     options ||= {
+    //         endian: "little",
+    //         writeId: true,
+    //         readTypeByte: false,
+    //     };
+
+    //     const buffer: Buffer[] = [];
+
+    //     if (options.writeId) {
+    //         const idBuffer = Buffer.alloc(4);
+    //         idBuffer.writeUInt32LE(bId);
+    //         buffer.push(idBuffer);
+    //     }
+
+    //     const blockData:ComponentTypeHeader[] = Block.getArgTypesByBlockId(bId);
+
+    //     for (let i = 0, len = blockData.length; i < len; i++) {
+    //         const entry = BufferReader.Dynamic(blockData[i], args[i]);
+    //         buffer.push(entry);
+    //     }
+
+    //     return Buffer.concat(buffer);
+    // }
+
+    /**
+     * Returns an object suitable for sending worldBlockPlacedPacket to connection.
+     * @param pos List of possible positions (a max of 250 positions) - this does not automatically truncate if it overfills.
      */
     toPacket(pos: Point[], layer: LayerType) : SendableBlockPacket;
     toPacket(x: number, y: number, layer: LayerType) : SendableBlockPacket;
@@ -140,7 +183,8 @@ export default class Block {
             blockId: this.bId,
             layer,
             positions: pos,
-            extraFields: Block.serializeArgs(this.bId, this.args, { endian: "big", writeId: false, readTypeByte: true })
+            fields: Block.getArgsAsFields(this),
+            // extraFields: Block.serializeArgs(this.bId, this.args, { endian: "big", writeId: false, readTypeByte: true })
         } satisfies SendableBlockPacket;
     }
 
@@ -164,11 +208,20 @@ export default class Block {
      * Returns a copy of the block.
      */
     clone(obj?: false) : Block;
-    clone(obj: true) : { bId: number, args: BlockArg[], name: string }
+    clone(obj: true) : { bId: number, args: Record<string, BlockArg>, name: string }
     clone(obj = false) {
         if (obj === true) return { bId: this.bId, args: this.args, name: this.name };
 
-        return new Block(this.bId, this.args);
+        const b = new Block(this.bId);
+
+        b.args = this.args;
+
+        return b;
+    }
+
+    compareTo(b: Block) {
+        return this.bId === b.bId
+                && compareObjs(this.args, b.args)
     }
 
     /**
@@ -180,7 +233,7 @@ export default class Block {
      * If the connection is unknown, this can be because you're trying to use this function when Api#getListBlocks has never been invoked, or the object is missing.
      */
     static getIdByName(paletteId: string) : number {
-        const block = PWApiClient.listBlocksObj?.[paletteId];
+        const block = PWApiClient.listBlocksObj?.[paletteId.toUpperCase()];
 
         if (block === undefined) throw new MissingBlockError("Current block data is missing, run Api#listBlocks first?", paletteId);
 
@@ -204,14 +257,14 @@ export default class Block {
     }
 
     /**
-     * Returns the arg types for that block by given block ID.
+     * Returns the block fields for that block by given block ID.
      * 
      * If a block don't have args, it will return an empty array.
      * 
      * If the block don't exist, it may throw an exception.
      */
-    static getArgTypesByBlockId(blockId: number) : ComponentTypeHeader[] {
-        return PWApiClient.listBlocks?.[blockId].BlockDataArgs ?? [];
+    static getFieldsByBlockId(blockId: number) : AnyBlockField[] {
+        return PWApiClient.listBlocks?.[blockId].Fields ?? [];
 
         // const block = PWApiClient.listBlocks?.[blockId];
         
@@ -219,7 +272,7 @@ export default class Block {
     }
 
     /**
-     * Returns the arg types for that block by given palette ID (full upper case).
+     * Returns the block fields for that block by given palette ID (full upper case).
      * 
      * For eg "EMPTY" or "SIGN_GOLD"
      * 
@@ -227,8 +280,8 @@ export default class Block {
      * 
      * If the block don't exist, it may throw an exception.
      */
-    static getArgTypesByPaletteId(paletteId: string) : ComponentTypeHeader[] {
-        return PWApiClient.listBlocksObj?.[paletteId].BlockDataArgs ?? [];
+    static getFieldsByPaletteId(paletteId: string) : AnyBlockField[] {
+        return PWApiClient.listBlocksObj?.[paletteId].Fields ?? [];
         //MissingBlockData[paletteId] ?? (PWApiClient.listBlocksObj?.[paletteId].BlockDataArgs) as ComponentTypeHeader[] ?? []
     }
 }
