@@ -279,11 +279,11 @@ export class DeserialisedStructure {
             for (let l = 0; l < helper.blocks.length; l++) {
                 for (let x2 = x; x2 < helper.width && x2 < maxWidth; x2++) {
                     for (let y2 = y; y2 < helper.height && y2 < maxHeight; y2++) {
-                        const currBlock = helper.blocks[l][x2][y2];
+                        const currBlock = helper.blocks[l][x2 - x][y2 - y];
                         const structBlock = this.blocks[l][x2 - x][y2 - y];
 
                         if (!currBlock.compareTo(structBlock))
-                            blockies.push({ block: helper.blocks[l][x2][y2], layer: l, pos: { x: x2, y: y2 } });
+                            blockies.push({ block: this.blocks[l][x2][y2], layer: l, pos: { x: x2, y: y2 } });
                     }
                 }
             }
