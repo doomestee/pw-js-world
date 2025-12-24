@@ -15,7 +15,7 @@ export default class StructureHelper {
      * 
      * This is for reading the structure itself, if you have just the blocks (and width/height), you must use deserialiseStructBlocks;
      * 
-     * @param data Buffer representing the JSON structure itself.
+     * @param data Either the structure form or the raw data, in Uint8array, including Buffer.
      */
     static read(data: Buffer | Uint8Array | IStructure) {
         if (data instanceof Uint8Array) {

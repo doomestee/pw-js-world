@@ -181,13 +181,13 @@ export function createBlockPackets(blocks: { block: Block, layer: LayerType, pos
  * 
  * Credits: Priddle / NVD https://discord.com/channels/534079923573489667/1230093943941758977/1431632635645530234
  */
-export function read7BitEncodedInt(reader: Buffer, offset: { val: number }): number {
+export function read7BitEncodedInt(reader: Uint8Array, offset: { val: number }): number {
     let value = 0;
     let shift = 0;
     let byte: number;
 
     do {
-        byte = reader.readUInt8(offset.val++);
+        byte = reader[offset.val++];
         value |= (byte & 0x7F) << shift;
         shift += 7;
     } while ((byte & 0x80) != 0);

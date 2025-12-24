@@ -2,7 +2,6 @@ import { PWApiClient, type CustomBotEvents, type Hook } from "pw-js-api";
 import type { ProtoGen } from "pw-js-api";//"../node_modules/pw-js-api/dist/gen/world_pb";
 
 import Block from "./Block.js";
-import BufferReader from "./BufferReader.js";
 import Player, { PlayerCounters, PlayerEffect } from "./Player.js";
 import { EffectId, LayerType } from "./Constants.js";
 import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
@@ -519,15 +518,15 @@ export default class PWGameWorldHelper {
     /**
      * Internal function.
      */
-    private deserialize(bytes: Record<"backgroundLayerData"|"foregroundLayerData"|"overlayLayerData", Uint8Array<ArrayBufferLike> | Buffer> & { blockDataPalette: ProtoGen.BlockDataInfo[] }) {
+    private deserialize(bytes: Record<"backgroundLayerData"|"foregroundLayerData"|"overlayLayerData", Uint8Array<ArrayBufferLike>> & { blockDataPalette: ProtoGen.BlockDataInfo[] }) {
         /**
          * Index based on the layer.
          * For now since there's only 3 layers.
          */
         const data = [
-            Buffer.isBuffer(bytes.backgroundLayerData) ? bytes.backgroundLayerData : Buffer.from(bytes.backgroundLayerData),
-            Buffer.isBuffer(bytes.foregroundLayerData) ? bytes.foregroundLayerData : Buffer.from(bytes.foregroundLayerData),
-            Buffer.isBuffer(bytes.overlayLayerData) ? bytes.overlayLayerData : Buffer.from(bytes.overlayLayerData)
+            bytes.backgroundLayerData,
+            bytes.foregroundLayerData,
+            bytes.overlayLayerData
         ];
 
         let palette: ProtoGen.BlockDataInfo;

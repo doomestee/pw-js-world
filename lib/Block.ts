@@ -169,54 +169,6 @@ export default class Block {
         return obj;
     }
 
-    // /**
-    //  * Serializes the block into a buffer. This is used to convert
-    //  * the block into a binary format that can be sent over the game
-    //  * server. As this is static, block id and args are required.
-    //  *
-    //  * - Little Endian
-    //  * - With Id
-    //  * - Type Byte omitted
-    //  */
-    // public static serializeArgs(bId: number, args: BlockArg[]): Buffer;
-
-    // /**
-    //  * Serializes the block into a buffer. This is used to convert
-    //  * the block into a binary format that can be sent over the game
-    //  * server. As this is static, block id and args are required.
-    //  *
-    //  * - Big Endian
-    //  * - No Id
-    //  * - Type Byte included
-    //  */
-    // public static serializeArgs(bId: number, args: BlockArg[], options: { endian: "big"; writeId: false; readTypeByte: true }): Buffer;
-    // public static serializeArgs(bId: number, args: BlockArg[], options: { endian: "little"; writeId: false; readTypeByte: true }): Buffer;
-
-    // public static serializeArgs(bId: number, args: BlockArg[], options?: { endian: "little" | "big"; writeId: boolean; readTypeByte: boolean }): Buffer {
-    //     options ||= {
-    //         endian: "little",
-    //         writeId: true,
-    //         readTypeByte: false,
-    //     };
-
-    //     const buffer: Buffer[] = [];
-
-    //     if (options.writeId) {
-    //         const idBuffer = Buffer.alloc(4);
-    //         idBuffer.writeUInt32LE(bId);
-    //         buffer.push(idBuffer);
-    //     }
-
-    //     const blockData:ComponentTypeHeader[] = Block.getArgTypesByBlockId(bId);
-
-    //     for (let i = 0, len = blockData.length; i < len; i++) {
-    //         const entry = BufferReader.Dynamic(blockData[i], args[i]);
-    //         buffer.push(entry);
-    //     }
-
-    //     return Buffer.concat(buffer);
-    // }
-
     /**
      * Returns an object suitable for sending worldBlockPlacedPacket to connection.
      * @param pos List of possible positions (a max of 250 positions) - this does not automatically truncate if it overfills.
@@ -319,10 +271,6 @@ export default class Block {
      */
     static getFieldsByBlockId(blockId: number) : AnyBlockField[] {
         return PWApiClient.listBlocks?.[blockId].Fields ?? [];
-
-        // const block = PWApiClient.listBlocks?.[blockId];
-        
-        // return block ? MissingBlockData[block?.PaletteId.toUpperCase()] ?? (block.BlockDataArgs) as ComponentTypeHeader[] ?? [] : [];
     }
 
     /**
@@ -336,12 +284,5 @@ export default class Block {
      */
     static getFieldsByPaletteId(paletteId: string) : AnyBlockField[] {
         return PWApiClient.listBlocksObj?.[paletteId].Fields ?? [];
-        //MissingBlockData[paletteId] ?? (PWApiClient.listBlocksObj?.[paletteId].BlockDataArgs) as ComponentTypeHeader[] ?? []
     }
 }
-
-// Temporary fix as some blocks currently have incorrect args
-// const MissingBlockData = {
-//     SWITCH_LOCAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
-//     SWITCH_GLOBAL_ACTIVATOR: [ComponentTypeHeader.Int32, ComponentTypeHeader.Byte],
-// } as Record<string, ComponentTypeHeader[]>;
