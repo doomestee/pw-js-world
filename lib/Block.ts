@@ -214,7 +214,7 @@ export default class Block {
 
         const b = new Block(this.bId);
 
-        b.args = this.args;
+        b.args = structuredClone(this.args);
 
         return b;
     }
