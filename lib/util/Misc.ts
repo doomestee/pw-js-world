@@ -2,7 +2,6 @@ import { type LayerType, MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE } from "../
 import type { BlockArg, Point, SendableBlockPacket } from "../types";
 import Block from "../Block.js";
 import { type AnyBlockField, type BlockKeys } from "pw-js-api";
-import { isDeepStrictEqual } from "node:util";
 
 // const aaa = {
 //     hi: 0

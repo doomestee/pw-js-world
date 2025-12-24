@@ -82,8 +82,15 @@ export default class StructureHelper {
 
                     for (let a = 2, alen = block.length; a < alen; a++) {
                         let arg = args[block[a]];
+                        const field = fields[a - 2];
 
                         if (typeof arg === "string" && arg.startsWith("\x00")) arg = Uint8Array.from(arg.slice(1));
+                        else {
+                            switch (field.Type) {
+                                case "Boolean": arg = !!arg; break; // legacy support: idk what happened here
+                                case "String": arg = String(arg); break; // legacy support: world portal ids are now string.
+                            }
+                        }
 
                         deBlock.args[fields[a - 2].Name] = arg;
                     }

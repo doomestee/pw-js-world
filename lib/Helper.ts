@@ -149,7 +149,7 @@ export default class PWGameWorldHelper {
                         const { x, y } = positions[i];
 
                         oldBlocks[i] = this.blocks[layer][x][y].clone();
-                        newBlocks[i] = this.blocks[layer][x][y] = new Block(blockId, packet.value.fields);
+                        newBlocks[i] = this.blocks[layer][x][y] = new Block(blockId)._initArgs(packet.value.fields);
                     }
                     
                     // console.log(`Block has been placed: ${blockId}, args:`, newBlocks[0].args);
@@ -543,7 +543,7 @@ export default class PWGameWorldHelper {
                 palette = bytes.blockDataPalette[read7BitEncodedInt(data[l], offset)];
                 runLength = (read7BitEncodedInt(data[l], offset));;
 
-                const b = new Block(palette.blockId, palette.fields);
+                const b = new Block(palette.blockId)._initArgs(palette.fields);
 
                 while (runLength-- > 0) {
                     let x = Math.floor(i / this._height);

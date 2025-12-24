@@ -1,8 +1,7 @@
 import type { BlockArg, Point, SendableBlockPacket } from "./types/index.js";
-import BufferReader, { ComponentTypeHeader } from "./BufferReader.js";
 import { LayerType } from "./Constants.js";
 import { AnyBlockField, OmitRecursively, ProtoGen, PWApiClient, type BlockKeys } from "pw-js-api";
-import { MissingBlockError } from "./util/Error.js";
+import { LegacyIncorrectArgError, LegacyIncorrectArgsLenError, MissingBlockError } from "./util/Error.js";
 import { compareObjs, listedFieldTypeToGameType } from "./util/Misc.js";
 
 export default class Block {
@@ -14,7 +13,19 @@ export default class Block {
      */
     args: Record<string, BlockArg> = {};
 
-    constructor(bId: number | BlockKeys | string, args?: BlockArg[] | OmitRecursively<Record<string, ProtoGen.BlockFieldValue>, "$typeName"|"$unknown">) {
+    /**
+     * NOTE: This is a deprecated form as the arrangement of fields/args for a block may change in the future.
+     */
+    constructor(bId: number | BlockKeys | string, args?: BlockArg[])
+    /**
+     * 
+     */
+    constructor(bId: number | BlockKeys | string, args?: Record<string, BlockArg>)
+    /**
+     * @param bId ID of the block, can be the current numeric block ID, or string ID (from /listblocks).
+     * @param args Arguments belonging to the block. This class does not clone.
+     */
+    constructor(bId: number | BlockKeys | string, args?: BlockArg[] | Record<string, BlockArg>) {
         if (typeof bId === "number") this.bId = bId;
         else {
             this.bId = Block.getIdByName(bId);
@@ -23,26 +34,39 @@ export default class Block {
         if (args) {
             // LEGACY SUPPORT
             if (Array.isArray(args)) {
-                args = Block.getArgsAsFields(this);
-            }// else {
-                const keys = Object.keys(args);
+                const fields = Block.getFieldsByBlockId(this.bId);
 
-                if (keys.length > 0) {
-                    for (let i = 0, ken = keys.length; i < ken; i++) {
-                        const arg = args[keys[i]];
-                        const val = arg.value;
+                // For now, assuming they're of the same length.
 
-                        switch (arg.value.case) {
-                            default:
-                                // TODO: error handling?
-                            case "boolValue": case "byteArrayValue": case "stringValue":
-                            case "uint32Value": case "int32Value":
-                                this.args[keys[i]] = val.value as NonNullable<ProtoGen.BlockFieldValue["value"]["value"]>;
-                        }
-                    }
+                if (args.length !== fields.length) throw new LegacyIncorrectArgsLenError("Args length is not equal to fields length for this block ID", this.bId, args.length, fields.length);
+
+                for (let i = 0, ken = fields.length; i < ken; i++) {
+                    // const arg = fieldedArgs[keys[i]];
+                    const field = fields[i];
+                    const arg = args[i];
+
+                    if (field.Type === "String" && typeof arg !== "string"
+                        || field.Type === "Boolean" && typeof arg !== "boolean"
+                        || field.Type === "Int32" && typeof arg !== "number"
+                        || field.Type === "UInt32" && typeof arg !== "number") throw new LegacyIncorrectArgError("The arg type does not match the field", this.bId, arg, field);
+                    // todo: uint8array?
+
+                    this.args[field.Name] = arg;
                 }
-            //}
+            } else this.args = args;
         }
+    }
+
+    /**
+     * This is called upon automatically (if a helper is attached) binding the args to the newly instantised block.
+     * This does not validate if the fields truly belong to the block.
+     * 
+     * INTERNAL
+     */
+    _initArgs(args: OmitRecursively<Record<string, ProtoGen.BlockFieldValue>, "$typeName"|"$unknown">) : this {
+        this.args = Block.parseArgFields(args);
+
+        return this;
     }
 
     /**
@@ -54,12 +78,14 @@ export default class Block {
 
     /**
      * This is for the fields parameter in sending world block placement.
+     * 
+     * If the whole Block is passed, and the args parameter is undefined, the block's args will be used.
      */
-    static getArgsAsFields(block: Block) : OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> 
+    static getArgsAsFields(block: Block, args?: Record<string, BlockArg>) : OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> 
     static getArgsAsFields(bId: number, args?: Record<string, BlockArg>) : OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> 
     static getArgsAsFields(bId: number | Block, args?: Record<string, BlockArg>) {
         if (bId instanceof Block) {
-            args = bId.args;
+            args ??= bId.args;
             bId = bId.bId;
         }
 
@@ -87,7 +113,6 @@ export default class Block {
     }
 
     /**
-     * 
      */
     static getArgsAsArray(block: Block) : BlockArg[]
     static getArgsAsArray(bId: number, args?: Record<string, BlockArg>) : BlockArg[]
@@ -113,6 +138,35 @@ export default class Block {
         }
 
         return arr;
+    }
+
+    /**
+     * This is sort of for internal use,
+     * this will convert the packet form of fields
+     * back into object of arg names mapped to their values.
+     */
+    static parseArgFields(args: OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName">) : Record<string, BlockArg> {
+        const obj:Record<string, BlockArg> = {};
+
+        const keys = Object.keys(args);
+
+        for (let i = 0; i < keys.length; i++) {
+            const arg = args[keys[i]];
+            const val = arg.value;
+
+            switch (val.case) {
+                default:
+                    // TODO: error handling?
+                case "boolValue":
+                    obj[keys[i]] = !!val.value; // server sends 0 or 1
+                    break;
+                case "byteArrayValue": case "stringValue":
+                case "uint32Value": case "int32Value":
+                    obj[keys[i]] = val.value as NonNullable<ProtoGen.BlockFieldValue["value"]["value"]>;
+            }
+        }
+
+        return obj;
     }
 
     // /**
