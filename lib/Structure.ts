@@ -1,8 +1,10 @@
+import type { AnyBlockField } from "pw-js-api";
 import Block from "./Block.js";
 import type { LayerType } from "./Constants.js";
 import type PWGameWorldHelper from "./Helper.js";
 import type { BlockArg, Point, SendableBlockPacket } from "./types";
-import { createBlockPackets } from "./util/Misc.js";
+import { createBlockPackets, find } from "./util/Misc.js";
+import { LegacyIncorrectArgError } from "./util/Error.js";
 
 /**
  * This is external to the main Helper, it will allow developers to use the structure without needing to use helper if they so wish.
@@ -25,11 +27,14 @@ export default class StructureHelper {
 
         const json = "version" in data ? data : JSON.parse(data.toString()) as IStructure;
 
-        if (json.version === undefined || json.version < 1 || json.version > 1) throw Error("Unknown file format");
+        switch (json.version) {
+            case 1: case 2:
+                const desed = this.deserialiseStructBlocks(json.blocks, json.width, json.height);
 
-        const desed = this.deserialiseStructBlocks(json.blocks, json.width, json.height);
-
-        return new DeserialisedStructure(desed.blocks, { width: desed.width, height: desed.height });
+                return new DeserialisedStructure(desed.blocks, { width: desed.width, height: desed.height });
+            default:
+                throw Error("Unknown file format");
+        }
     }
 
     /**
@@ -38,8 +43,6 @@ export default class StructureHelper {
      * This is ideal if you want the trimmed structure in that case.
      */
     static deserialiseStructBlocks(struct: IStructureBlocks, width?: number, height?: number) {
-        const { args, blocks, mapping } = struct;
-
         const deBlocks = [[], [], []] as [Block[][], Block[][], Block[][]];
         
         let isMissing = width === undefined || height === undefined;
@@ -59,6 +62,26 @@ export default class StructureHelper {
         }
 
         let big = { x: 0, y: 0 };
+        
+        const { blocks, mapping } = struct;
+
+        // TODO: if v3 is created in the future, this will require a significant code revamp but for now this will work
+        let version = -1;
+        let argsMapping:BlockArg[];
+        let fieldsMapping:string[] = [];
+
+        if ("version" in struct) {
+            // TODO: change if v3 or above
+            
+            version = struct.version;
+
+            argsMapping = struct.argsMapping;
+            fieldsMapping = struct.fieldsMapping;
+        } else {
+            // legacy support
+            argsMapping = struct.args;
+            version = 1;
+        }
 
         for (let i = 0, ien = blocks.length; i < ien; i++) {
             // While foreground and background layers are only supported for now, it's possible there are more layers in the future.
@@ -81,10 +104,21 @@ export default class StructureHelper {
                     const fields = Block.getFieldsByBlockId(deBlock.bId);
 
                     for (let a = 2, alen = block.length; a < alen; a++) {
-                        let arg = args[block[a]];
-                        const field = fields[a - 2];
+                        let arg = argsMapping[block[a]];
+                        let field:AnyBlockField;
 
-                        if (typeof arg === "string" && arg.startsWith("\x00")) arg = Uint8Array.from(arg.slice(1));
+                        if (version > 1) {
+                            const fieldName = fieldsMapping[block[++a]];
+
+                            field = find(fields, v => v.Name === fieldName)!;
+
+                            if (field === undefined)
+                                throw new LegacyIncorrectArgError(`The field '${fieldName}' no longer exists for block '${mapping[i]}'`, deBlock.bId, fieldName);
+                        } else {
+                            field = fields[a - 2];
+                        }
+
+                        if (typeof arg === "string" && arg.startsWith("\x00")) arg = Uint8Array.from(arg.slice(1).split(","));
                         else {
                             switch (field.Type) {
                                 case "Boolean": arg = !!arg; break; // legacy support: idk what happened here
@@ -92,7 +126,7 @@ export default class StructureHelper {
                             }
                         }
 
-                        deBlock.args[fields[a - 2].Name] = arg;
+                        deBlock.args[field.Name] = arg;
                     }
                 }
             }
@@ -144,15 +178,17 @@ export class DeserialisedStructure {
      * 
      * NOTE: This requires you to have called API getlistblocks (unless you have joined the world)
      */
-    getSerialisedBlocks() : IStructureBlocks {
+    getSerialisedBlocks() : IStructureBlocksV2 {
         const blocks:[[x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][]][] = [];
 
-        const args:BlockArg[] = [];
+        const argsMapping:BlockArg[] = [];
+        const fieldsMapping:string[] = [];
         const mapping:string[] = [];
 
         // corresponds to the index in mapping array.
-        const mappingDone = {} as Record<number, number>;
         const argDone = new Map<BlockArg, number>();
+        const fieldDone = new Map<string, number>();
+        const mappingDone = {} as Record<number, number>;
 
         for (let l = 0; l < this.blocks.length; l++) {
             for (let x = 0; x < this.width; x++) {
@@ -173,37 +209,31 @@ export class DeserialisedStructure {
 
                     const toPut = [x, y] as [number, number, ...number[]];
 
-                    // const keys = Object.keys(block.args);
-                    const args = Block.getArgsAsArray(block);
+                    const blockArgs = Block.validateArgs(block);
 
-                    for (let a = 0, argsLen = args.length; a < argsLen; a++) {
-                        const arg = (args[a] instanceof Uint8Array) ? "\x00" + args[a]?.toString() : args[a];
+                    for (let a = 0, len = blockArgs.keys.length; a < len; a++) {
+                        const key = blockArgs.keys[a];
+                        const val = (blockArgs.values[a] instanceof Uint8Array) ? "\x00" + blockArgs.values[a]?.toString() : blockArgs.values[a];
 
-                        let argIndex = argDone.get(arg);
+                        let argIndex = argDone.get(val);
+                        let fieldIndex = fieldDone.get(key);
 
                         if (argIndex === undefined) {
-                            argIndex = argDone.set(arg, args.push(arg) - 1).get(arg);
+                            argIndex = argDone.set(val, argsMapping.push(val) - 1).get(val);
                         }
 
-                        if (argIndex === undefined) throw Error("This should be impossible at this point, but left for type safety.");
-
-                        toPut[2 + a] = argIndex;
+                        if (fieldIndex === undefined) {
+                            fieldIndex = fieldDone.set(key, fieldsMapping.push(key) - 1).get(key);
+                        }
+                        
+                        if (argIndex === undefined || fieldIndex === undefined) throw Error("This should be impossible at this point, but left for type safety.");
+                        
+                        // 0 - 2, 3
+                        // 1 - 4, 5
+                        // 2 - 6, 7
+                        toPut[2 + (a * 2)] = argIndex;
+                        toPut[2 + (a * 2) + 1] = fieldIndex;
                     }
-
-                    // for (let a = 0, argsLen = keys.length; a < argsLen; a++) {
-                    //     const arg = Buffer.isBuffer(block.args[keys[a]]) ? "\x00" + block.args[keys[a]].toString() : block.args[keys[a]];
-
-                    //     let argIndex = argDone.get(arg);
-
-                    //     if (argIndex === undefined) {
-                    //         argDone.set(arg, args.push(arg) - 1);
-                    //         argIndex = argDone.get(arg);
-                    //     }
-
-                    //     if (argIndex === undefined)
-
-                    //     toPut[2 + a] = argIndex;
-                    // }
 
                     blocks[index][l].push(toPut);
                 }
@@ -211,8 +241,11 @@ export class DeserialisedStructure {
         }
 
         return {
+            version: 2,
+
+            argsMapping,
+            fieldsMapping,            
             mapping,
-            args,
             blocks
         };
     }
@@ -224,9 +257,9 @@ export class DeserialisedStructure {
         const struct = this.getSerialisedBlocks();
 
         return {
+            version: 2,
             width: this.width,
             height: this.height,
-            version: 1,
             blocks: struct
         } satisfies IStructure;
     }
@@ -309,11 +342,13 @@ export class DeserialisedStructure {
     }
 }
 
-export interface IStructure {
+export type IStructure = IStructureV1 | IStructureV2;
+
+export interface IStructureV1 {
     /**
      * Version of the structure object, not the world.
      */
-    version: number;
+    version: 1;
     /**
      * The maximum width of the structure.
      */
@@ -326,12 +361,34 @@ export interface IStructure {
     /**
      * Object containing the mappings and the blocks.
      */
-    blocks: IStructureBlocks;
+    blocks: IStructureBlocksV1;
 }
 
-export interface IStructureBlocks {
+export interface IStructureV2 {
     /**
-     * Index starts at 0, this is the mapping of blocks (in block name ids in UPPER_CASE)
+     * Version of the structure object, not the world.
+     */
+    version: 2;
+    /**
+     * The maximum width of the structure.
+     */
+    width: number;
+    /**
+     * The maximum height of the structure.
+     */
+    height: number;
+
+    /**
+     * Object containing the mappings and the blocks.
+     */
+    blocks: IStructureBlocksV2;
+}
+
+export type IStructureBlocks = IStructureBlocksV1 | IStructureBlocksV2;
+
+export interface IStructureBlocksV1 {
+    /**
+     * Index starts at 0, this is the mapping of palette IDs (block name ids in UPPER_CASE)
      */
     mapping: string[];
 
@@ -345,8 +402,43 @@ export interface IStructureBlocks {
      * (while impossible, it's for possible compatibility with mirrored blocks, foreground block in background layer etc)
      * 
      * If argMapping exists in a block, it'll be an index that corresponds to the block's arguments in args array.
+     */
+    blocks: [
+        [x: number, y: number, ...argMapping: number[]][],
+        [x: number, y: number, ...argMapping: number[]][],
+        [x: number, y: number, ...argMapping: number[]][]
+    ][];
+}
+
+export interface IStructureBlocksV2 {
+    // Kind of a shame to realise this now
+    /**
+     * Version of the structured blocks.
+     */
+    version: 2;
+
+    /**
+     * Index starts at 0, this is the mapping of palette IDs (block name ids in UPPER_CASE)
+     */
+    mapping: string[];
+
+    /**
+     * Index starts at 0, this is the mapping of field names (for example, a portal block will have "rotation" and "id" so 0 - rotation, 1 - id)
+     */
+    fieldsMapping: string[]
+
+    /**
+     * Index starts at 0, this is the mapping of args in blocks, after the y (see blocks for further desc)
+     */
+    argsMapping: BlockArg[];
+
+    /**
+     * If array, it's index corresponds to the mapping, the element will be array of locations and args indexed by layers
+     * (while impossible, it's for possible compatibility with mirrored blocks, foreground block in background layer etc)
      * 
-     * If string, it's the encoded version of the object, use atob then JSON parse.
+     * If argMapping exists in a block, there will be 2 elements for every arg
+     * - 1st is the pointer to the field/arg value in argsMapping.
+     * - 2nd is the pointer to the field/arg name in fieldsMapping.
      */
     blocks: [
         [x: number, y: number, ...argMapping: number[]][],

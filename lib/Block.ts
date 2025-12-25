@@ -2,7 +2,7 @@ import type { BlockArg, Point, SendableBlockPacket } from "./types/index.js";
 import { LayerType } from "./Constants.js";
 import { AnyBlockField, OmitRecursively, ProtoGen, PWApiClient, type BlockKeys } from "pw-js-api";
 import { LegacyIncorrectArgError, LegacyIncorrectArgsLenError, MissingBlockError } from "./util/Error.js";
-import { compareObjs, listedFieldTypeToGameType } from "./util/Misc.js";
+import { compareObjs, listedFieldTypeToGameType, map } from "./util/Misc.js";
 
 export default class Block {
     bId: number;
@@ -89,9 +89,13 @@ export default class Block {
             bId = bId.bId;
         }
 
-        if (args === undefined) return {};
-
         const fields = Block.getFieldsByBlockId(bId);
+        
+        if (args === undefined) {
+            if (fields.length > 0) throw Error(`Missing arguments: ${map(fields, v => v.Name).join(", ")}.`);
+
+            return [];
+        }
 
         const obj:OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> = {};
 
@@ -118,14 +122,18 @@ export default class Block {
     static getArgsAsArray(bId: number, args?: Record<string, BlockArg>) : BlockArg[]
     static getArgsAsArray(bId: number | Block, args?: Record<string, BlockArg>) {
         if (bId instanceof Block) {
-            args = bId.args;
+            args ??= bId.args;
             bId = bId.bId;
         }
 
-        if (args === undefined) return [];
-
         const arr:BlockArg[] = [];
         const fields = Block.getFieldsByBlockId(bId);
+        
+        if (args === undefined) {
+            if (fields.length > 0) throw Error(`Missing arguments: ${map(fields, v => v.Name).join(", ")}.`);
+
+            return [];
+        }
 
         for (let i = 0, len = fields.length; i < len; i++) {
             const f = fields[i];
@@ -138,6 +146,78 @@ export default class Block {
         }
 
         return arr;
+    }
+
+    /**
+     * Checks if all required fields are present, it will also check if there are extra fields that are not used.
+     * 
+     * Returns an object with two lists: values and keys. The indexes of values also point to keys.
+     * 
+     * For example:
+     * ```js
+     * { values: [3, "Text is awesome."], keys: ["rotation", "text"] }
+     * ```
+     * 
+     * NOTE: This will not error if a required field is missing. This also doesn't validate string against patterns for now.
+     */
+    static validateArgs(block: Block) : { values: BlockArg[], keys: string[] };
+    static validateArgs(bId: number, args?: Record<string, BlockArg>) : { values: BlockArg[], keys: string[] };
+    static validateArgs(bId: number | Block, args?: Record<string, BlockArg>) : { values: BlockArg[], keys: string[] } {
+        if (bId instanceof Block) {
+            args ??= bId.args;
+            bId = bId.bId;
+        }
+
+        const obj = { keys: [] as string[], values: [] as BlockArg[] };
+
+        const fields = Block.getFieldsByBlockId(bId);
+        
+        if (args === undefined) {
+            if (fields.length > 0) throw Error(`Missing arguments: ${map(fields, v => v.Name).join(", ")}.`);
+
+            return obj;
+        }
+
+        const argNames = Object.keys(args);
+
+        for (let i = 0, len = fields.length; i < len; i++) {
+            const f = fields[i];
+            const val = args[f.Name];
+
+            if (f.Required === true && val === undefined) throw Error(`Missing required argument: ${f.Name} (Type: ${f.Type})`);;
+            // else if (f.Required === false && args[f.Name] === undefined) arr.push(undefined);
+
+            if (val !== undefined)
+                switch (f.Type) {
+                    case "String":
+                        if (typeof val !== "string") throw new LegacyIncorrectArgError(`Argument '${f.Name}' is not of correct type (${f.Type})`, bId, val);
+                        break;
+                    case "Int32": case "UInt32":
+                        if (typeof val !== "number") throw new LegacyIncorrectArgError(`Argument '${f.Name}' is not of correct type (${f.Type})`, bId, val);
+
+                        if (f.ExcludedValues?.includes(val)) throw new LegacyIncorrectArgError(`Argument '${f.Name}' value is in the excluded values`, bId, val);
+                        if (f.MinValue > val) throw new LegacyIncorrectArgError(`Argument '${f.Name}' value lower than the minimum value (${f.MinValue})`, bId, val);
+                        if (f.MaxValue < val) throw new LegacyIncorrectArgError(`Argument '${f.Name}' value lower than the maximum value (${f.MaxValue})`, bId, val);
+
+                        break;
+                    case "Boolean":
+                        if (typeof val !== "boolean") throw new LegacyIncorrectArgError(`Argument '${f.Name}' is not of correct type (${f.Type})`, bId, val);
+
+                        break;
+                }
+
+            for (let j = 0; j < argNames.length; j++) {
+                if (argNames[j] === f.Name) {
+                    obj.keys.push(f.Name);
+                    obj.values.push(val);
+
+                    argNames.splice(j, 1);
+                    break;
+                }
+            }
+        }
+
+        return obj;
     }
 
     /**

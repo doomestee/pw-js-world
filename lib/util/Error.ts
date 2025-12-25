@@ -42,9 +42,9 @@ export class LegacyIncorrectArgError extends Error {
          */
         public arg: any,
         /**
-         * The expected field.
+         * The expected field. This may be undefined if it no longer exists.
          */
-        public field: AnyBlockField
+        public field?: AnyBlockField
         ) {
         super(msg);
     }
