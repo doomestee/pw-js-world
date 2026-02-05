@@ -19,7 +19,11 @@ export interface IPlayer {
     /**
      * ID of the player's equipped smiley.
      */
-    face: number;
+    smileyId: number;
+    /**
+     * ID of the player's aura shape, which is string for some reason.
+     */
+    auraId: string;
     /**
      * String, could be an admin or developer.
      */
@@ -27,7 +31,7 @@ export interface IPlayer {
     /**
      * If player is bot user's friend.
      */
-    isFriend: boolean;
+    readonly isFriend: boolean;
     /**
      * Position of the user.
      * 
@@ -79,6 +83,10 @@ export interface IPlayerRights {
      * List of commands (string) the player can use.
      */
     availableCommands: string[];
+    /**
+     * Whether if player can manage labels or not.
+     */
+    canManageLabels: boolean;
 }
 
 export interface IPlayerWorldState {
@@ -164,7 +172,11 @@ export default class Player {
     /**
      * ID of the player's equipped smiley.
      */
-    face: number;
+    smileyId: string;
+    /**
+     * ID of the player's equipped aura shape.
+     */
+    auraId: string;
     /**
      * String, could be an admin or developer.
      */
@@ -204,7 +216,8 @@ export default class Player {
 
     constructor(props: ProtoGen.PlayerProperties, states?: (Omit<ProtoGen.PlayerWorldState, "switches"|"counters"> & { switches: boolean[], counters: PlayerCounters }) | boolean) {
         this.accountId = props.accountId;
-        this.face = props.face;
+        this.smileyId = props.smileyId;
+        this.auraId = props.auraId;
         this.isFriend = props.isFriend;
         this.isWorldOwner = props.isWorldOwner;
         this.playerId = props.playerId;
@@ -220,6 +233,7 @@ export default class Player {
             canEdit: props.rights.canEdit,
             canGod: props.rights.canGod,
             canToggleMinimap: props.rights.canToggleMinimap,
+            canManageLabels: props.rights.canManageLabels
         };
 
         this.role = props.role;
@@ -280,7 +294,8 @@ export default class Player {
             canChangeWorldSettings: false,
             canEdit: false,
             canGod: false,
-            canToggleMinimap: false
+            canToggleMinimap: false,
+            canManageLabels: false
         }
     }
 }

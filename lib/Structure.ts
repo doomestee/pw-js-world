@@ -1,10 +1,11 @@
-import type { AnyBlockField } from "pw-js-api";
+import type { AnyBlockField, ISendablePacket } from "pw-js-api";
 import Block from "./Block.js";
 import type { LayerType } from "./Constants.js";
 import type PWGameWorldHelper from "./Helper.js";
-import type { BlockArg, Point, SendableBlockPacket } from "./types";
+import type { BlockArg, Point } from "./types";
 import { createBlockPackets, find } from "./util/Misc.js";
 import { LegacyIncorrectArgError } from "./util/Error.js";
+import Label from "./Label.js";
 
 /**
  * This is external to the main Helper, it will allow developers to use the structure without needing to use helper if they so wish.
@@ -31,7 +32,7 @@ export default class StructureHelper {
             case 1: case 2:
                 const desed = this.deserialiseStructBlocks(json.blocks, json.width, json.height);
 
-                return new DeserialisedStructure(desed.blocks, { width: desed.width, height: desed.height });
+                return new DeserialisedStructure(desed.blocks, "labels" in json ? json.labels : [], { width: desed.width, height: desed.height });
             default:
                 throw Error("Unknown file format");
         }
@@ -163,18 +164,22 @@ export default class StructureHelper {
  */
 export class DeserialisedStructure {
     blocks: [Block[][], Block[][], Block[][]];
+    labels: Label[];
 
     width: number;
     height: number;
 
-    constructor(blocks: [Block[][], Block[][], Block[][]], struct: Omit<IStructure, "version"|"blocks">) {
+    constructor(blocks: [Block[][], Block[][], Block[][]], labels: Label[], struct: Omit<IStructure, "version"|"blocks">) {
         this.blocks = blocks;
+        this.labels = labels;
         this.width = struct.width;
         this.height = struct.height;
     }
 
     /**
      * This will return a new object that meets IStructureBlocks interface.
+     * 
+     * (This does not contain the labels!)
      * 
      * NOTE: This requires you to have called API getlistblocks (unless you have joined the world)
      */
@@ -251,7 +256,7 @@ export class DeserialisedStructure {
     }
 
     /**
-     * This will return the structure form, giving you the freedom to choose your own way of saving.
+     * This will return the structure in object form.
      */
     toStruct() : IStructure {
         const struct = this.getSerialisedBlocks();
@@ -260,7 +265,8 @@ export class DeserialisedStructure {
             version: 2,
             width: this.width,
             height: this.height,
-            blocks: struct
+            blocks: struct,
+            labels: this.labels ?? []
         } satisfies IStructure;
     }
 
@@ -302,15 +308,16 @@ export class DeserialisedStructure {
     /**
      * This will return a list of packets containing all of the blocks.
      */
-    toPackets(x: number, y: number) : SendableBlockPacket[];
+    toPackets(x: number, y: number) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[];
     /**
      * This will return a list of packets containing all of the blocks.
      * 
      * If you pass in the blocks (from PWGameWorldHelper) for the 3rd parameter, this will be used to check for any already placed blocks.
      */
-    toPackets(x: number, y: number, helper: PWGameWorldHelper) : SendableBlockPacket[];
+    toPackets(x: number, y: number, helper: PWGameWorldHelper) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[];
     toPackets(x: number, y: number, helper?: PWGameWorldHelper) {
         const blockies:{ block: Block, layer: LayerType, pos: Point }[] = [];
+        const labels:Label[] = [];
 
         if (helper) {
             const maxWidth = this.width + x;
@@ -327,6 +334,18 @@ export class DeserialisedStructure {
                     }
                 }
             }
+
+            for (let i = 0, len = this.labels.length; i < len; i++) {
+                const currLabel = helper.labels.get(this.labels[i].id);
+                const structLabel = this.labels[i].toJSON();
+                
+                structLabel.position.x += x;
+                structLabel.position.y += y;
+
+                if (!currLabel?.compareTo(structLabel)) {
+                    labels.push(new Label(structLabel));
+                }
+            }
         }
         else {
             for (let l = 0; l < this.blocks.length; l++) {
@@ -336,9 +355,18 @@ export class DeserialisedStructure {
                     }
                 }
             }
+
+            for (let i = 0, len = this.labels.length; i < len; i++) {
+                const label = new Label(this.labels[i]);
+
+                label.position.x += x;
+                label.position.y += y;
+
+                labels.push(label);
+            }
         }
 
-        return createBlockPackets(blockies);
+        return createBlockPackets(blockies, labels);
     }
 }
 
@@ -382,6 +410,11 @@ export interface IStructureV2 {
      * Object containing the mappings and the blocks.
      */
     blocks: IStructureBlocksV2;
+
+    /**
+     * List of all the labels.
+     */
+    labels: Label[];
 }
 
 export type IStructureBlocks = IStructureBlocksV1 | IStructureBlocksV2;

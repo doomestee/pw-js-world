@@ -1,6 +1,6 @@
-import type { BlockArg, Point, SendableBlockPacket } from "./types/index.js";
+import type { BlockArg, Point } from "./types/index.js";
 import { LayerType } from "./Constants.js";
-import { AnyBlockField, OmitRecursively, ProtoGen, PWApiClient, type BlockKeys } from "pw-js-api";
+import { AnyBlockField, CleanProtoMessage, ISendablePacket, ProtoGen, PWApiClient, type BlockKeys } from "pw-js-api";
 import { LegacyIncorrectArgError, LegacyIncorrectArgsLenError, MissingBlockError } from "./util/Error.js";
 import { compareObjs, listedFieldTypeToGameType, map } from "./util/Misc.js";
 
@@ -63,7 +63,7 @@ export default class Block {
      * 
      * INTERNAL
      */
-    _initArgs(args: OmitRecursively<Record<string, ProtoGen.BlockFieldValue>, "$typeName"|"$unknown">) : this {
+    _initArgs(args: CleanProtoMessage<Record<string, ProtoGen.BlockFieldValue>>) : this {
         this.args = Block.parseArgFields(args);
 
         return this;
@@ -81,8 +81,8 @@ export default class Block {
      * 
      * If the whole Block is passed, and the args parameter is undefined, the block's args will be used.
      */
-    static getArgsAsFields(block: Block, args?: Record<string, BlockArg>) : OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> 
-    static getArgsAsFields(bId: number, args?: Record<string, BlockArg>) : OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> 
+    static getArgsAsFields(block: Block, args?: Record<string, BlockArg>) : CleanProtoMessage<ProtoGen.WorldBlockPlacedPacket["fields"]>;
+    static getArgsAsFields(bId: number, args?: Record<string, BlockArg>) : CleanProtoMessage<ProtoGen.WorldBlockPlacedPacket["fields"]>;
     static getArgsAsFields(bId: number | Block, args?: Record<string, BlockArg>) {
         if (bId instanceof Block) {
             args ??= bId.args;
@@ -97,7 +97,7 @@ export default class Block {
             return [];
         }
 
-        const obj:OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName"> = {};
+        const obj:CleanProtoMessage<ProtoGen.WorldBlockPlacedPacket["fields"]> = {};
 
         for (let i = 0, len = fields.length; i < len; i++) {
             const f = fields[i];
@@ -225,7 +225,7 @@ export default class Block {
      * this will convert the packet form of fields
      * back into object of arg names mapped to their values.
      */
-    static parseArgFields(args: OmitRecursively<ProtoGen.WorldBlockPlacedPacket["fields"], "$typeName">) : Record<string, BlockArg> {
+    static parseArgFields(args: CleanProtoMessage<ProtoGen.WorldBlockPlacedPacket["fields"]>) : Record<string, BlockArg> {
         const obj:Record<string, BlockArg> = {};
 
         const keys = Object.keys(args);
@@ -253,9 +253,9 @@ export default class Block {
      * Returns an object suitable for sending worldBlockPlacedPacket to connection.
      * @param pos List of possible positions (a max of 250 positions) - this does not automatically truncate if it overfills.
      */
-    toPacket(pos: Point[], layer: LayerType) : SendableBlockPacket;
-    toPacket(x: number, y: number, layer: LayerType) : SendableBlockPacket;
-    toPacket(pos: Point[] | number, y: number, layer?: LayerType) : SendableBlockPacket {
+    toPacket(pos: Point[], layer: LayerType) : ISendablePacket<"worldBlockPlacedPacket">;
+    toPacket(x: number, y: number, layer: LayerType) : ISendablePacket<"worldBlockPlacedPacket">;
+    toPacket(pos: Point[] | number, y: number, layer?: LayerType) : ISendablePacket<"worldBlockPlacedPacket"> {
         if (typeof pos === "number") {
             pos = [{
                 x: pos, y
@@ -265,13 +265,15 @@ export default class Block {
         } else layer = y ?? 0;
 
         return {
-            isFillOperation: false,
-            blockId: this.bId,
-            layer,
-            positions: pos,
-            fields: Block.getArgsAsFields(this),
+            type: "worldBlockPlacedPacket",
+            packet: {
+                blockId: this.bId,
+                layer,
+                positions: pos,
+                fields: Block.getArgsAsFields(this),
+            }
             // extraFields: Block.serializeArgs(this.bId, this.args, { endian: "big", writeId: false, readTypeByte: true })
-        } satisfies SendableBlockPacket;
+        } satisfies ISendablePacket<"worldBlockPlacedPacket">;
     }
 
     /**

@@ -2,9 +2,12 @@ import { PWApiClient, type CustomBotEvents, type Hook } from "pw-js-api";
 import type { ProtoGen } from "pw-js-api";//"../node_modules/pw-js-api/dist/gen/world_pb";
 
 import Block from "./Block.js";
+import Label from "./Label.js";
+
 import Player, { PlayerCounters, PlayerEffect } from "./Player.js";
+
 import { EffectId, LayerType } from "./Constants.js";
-import type { BlockArg, Point, PWGameHook, SendableBlockPacket } from "./types/index.js";
+import type { Point, PWGameHook } from "./types/index.js";
 import { DeserialisedStructure } from "./Structure.js";
 import { MissingBlockError } from "./util/Error.js";
 import { read7BitEncodedInt } from "./util/Misc.js";
@@ -19,6 +22,8 @@ export default class PWGameWorldHelper {
      * Arrays of blocks (by layer, x, y)
      */
     blocks: [Block[][], Block[][], Block[][]] = [[], [], []];//Block[][][] = [];
+
+    labels: Map<string, Label> = new Map();
 
     players = new Map<number, Player>();
 
@@ -158,6 +163,36 @@ export default class PWGameWorldHelper {
                     return { player, oldBlocks, newBlocks };
                 }
                 // return;
+            case "worldLabelUpsertPacket":
+                {
+                    if (!this._init) return;
+
+                    const label = packet.value.label;
+
+                    if (label) {
+                        const l = new Label(label);
+
+                        const oldLabel = this.labels.get(l.id) ?? null;
+                        
+                        this.labels.set(l.id, l);
+
+                        return { label: l, oldLabel };
+                    }
+
+                    return {};
+                }
+            case "worldLabelDeletePacket":
+                {
+                    if (!this._init) return;
+
+                    const labelId = packet.value.id;
+
+                    const oldLabel = this.labels.get(labelId);
+
+                    this.labels.delete(labelId);
+
+                    return { labelId, oldLabel };
+                }
             //#endregion
             //#region Player
             case "playerJoinedPacket":
@@ -184,19 +219,33 @@ export default class PWGameWorldHelper {
                     }
                 }
                 return;
-            case "playerFacePacket":
+            case "playerSmileyPacket":
                 {
                     const player = this.players.get(packet.value?.playerId as number);
 
                     if (player) {
-                        const oldie = player.face;
+                        const oldie = player.smileyId;  
 
-                        player.face = packet.value.faceId;
+                        player.smileyId = packet.value.smileyId;
 
-                        return { player, oldFace: oldie };//changes: { type: "face", oldValue: oldFace, newValue: player.face } };
+                        return { player, oldSmiley: oldie };//changes: { type: "face", oldValue: oldFace, newValue: player.face } };
                     }
                 }
                 return;
+            case "playerAuraPacket":
+                {
+                    const player = this.players.get(packet.value.playerId as number);
+
+                    if (player) {
+                        const oldie = player.auraId;
+
+                        player.auraId = packet.value.auraId;
+
+                        return { player, oldAura: oldie };
+                    }
+
+                    return {};
+                }
             case "playerModModePacket": case "playerGodModePacket":
                 {
                     const player = this.players.get(packet.value?.playerId as number);
@@ -341,6 +390,7 @@ export default class PWGameWorldHelper {
                                 canEdit: packet.value.rights.canEdit,
                                 canGod: packet.value.rights.canGod,
                                 canToggleMinimap: packet.value.rights.canToggleMinimap,
+                                canManageLabels: packet.value.rights.canToggleMinimap,
                             }
                         } else player.resetRights();
                         
@@ -483,6 +533,7 @@ export default class PWGameWorldHelper {
 
                     // packet.value.collected
                     // console.log(packet.value.collected);
+                    return;
                 }
             //#endregion
         }
@@ -495,11 +546,12 @@ export default class PWGameWorldHelper {
      * 
      * Yes th typing is cursed, I don't care as this is private.
      */
-    private initialise(bytes: Record<"backgroundLayerData"|"foregroundLayerData"|"overlayLayerData", Uint8Array<ArrayBufferLike>> & { blockDataPalette: ProtoGen.BlockDataInfo[] }, width?: number, height?: number) {
+    private initialise(bytes: Record<"backgroundLayerData"|"foregroundLayerData"|"overlayLayerData", Uint8Array<ArrayBufferLike>> & { blockDataPalette: ProtoGen.BlockDataInfo[], textLabels: ProtoGen.ProtoTextLabel[] }, width?: number, height?: number) {
         if (width === undefined) width = this.width;
         if (height === undefined) height = this.height;
 
         this.blocks.splice(0);
+        this.labels.clear();
 
         for (let l = 0; l < 3; l++) {
             this.blocks[l] = [];
@@ -510,6 +562,10 @@ export default class PWGameWorldHelper {
                     this.blocks[l][x][y] = new Block(0);
                 }
             }
+        }
+
+        for (let i = 0, len = bytes.textLabels.length; i < len; i++) {
+            this.labels.set(bytes.textLabels[i].id, new Label(bytes.textLabels[i]));
         }
 
         this.deserialize(bytes);
@@ -661,14 +717,15 @@ export default class PWGameWorldHelper {
     }
 
     /**
-     * This will return a DeserialisedStructure which will allow you to easily save to a file if you wish.
+     * This will return a DeserialisedStructure containing the blocks and labels. The structure can be saved to a file.
      * 
      * The blocks are cloned and thus you're free to modify the blocks in the structure without the risk of it affecting this helper's blocks.
      * 
      * NOTE: endX and endY are also included!
      */
-    sectionBlocks(startX: number, startY: number, endX: number, endY: number) {
+    sectionArea(startX: number, startY: number, endX: number, endY: number) {
         const blocks: [Block[][], Block[][], Block[][]] = [[], [], []];
+        const labels:Label[] = [];
 
         if (startX > endX) throw Error("Starting X is greater than ending X");
         if (startY > endY) throw Error("Starting Y is greater than ending Y");
@@ -683,6 +740,19 @@ export default class PWGameWorldHelper {
             }
         }
 
-        return new DeserialisedStructure(blocks, { width: endX - startX + 1, height: endY - startY + 1 });
+        if (this.labels.size) {
+            for (const [, label] of this.labels) {
+                if (label.position.x >= startX && label.position.x <= endX
+                    && label.position.y >= startY && label.position.y <= endY
+                ) {
+                    const labie = new Label(label);
+
+                    labie.position.x -= startX;
+                    labie.position.y -= startY;
+                }
+            }
+        }
+
+        return new DeserialisedStructure(blocks, labels, { width: endX - startX + 1, height: endY - startY + 1 });
     }
 }
