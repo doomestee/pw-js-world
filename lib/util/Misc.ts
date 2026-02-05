@@ -1,5 +1,5 @@
 import { type LayerType, MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE } from "../Constants.js";
-import type { BlockArg, Point } from "../types";
+import type { BlockArg, Point, SendableBlockPacket } from "../types";
 import Block from "../Block.js";
 import { ISendablePacket, type AnyBlockField, type BlockKeys } from "pw-js-api";
 import Label from "../Label.js";
@@ -110,8 +110,8 @@ export function findIndex<T>(arr: Array<T> | Map<any, T>, pred: (value: T, index
 /**
  * For now this is slightly limited, but this will ONLY create a sendable packet which you must then send it yourself.
  */
-export function createBlockPacket(blockId: number | BlockKeys | string, layer: LayerType, pos: Point | Point[], args: Record<string, BlockArg>) : ISendablePacket<"worldBlockPlacedPacket">;
-export function createBlockPacket(block: Block, layer: LayerType, pos: Point | Point[]) : ISendablePacket<"worldBlockPlacedPacket">;
+export function createBlockPacket(blockId: number | BlockKeys | string, layer: LayerType, pos: Point | Point[], args: Record<string, BlockArg>) : SendableBlockPacket;
+export function createBlockPacket(block: Block, layer: LayerType, pos: Point | Point[]) : SendableBlockPacket;
 export function createBlockPacket(blockId: number | BlockKeys | string | Block, layer: LayerType, pos: Point | Point[], args?: Record<string, BlockArg>) {
     if (blockId instanceof Block) {
         args = blockId.args;
@@ -127,14 +127,11 @@ export function createBlockPacket(blockId: number | BlockKeys | string | Block, 
     if (!Array.isArray(pos)) pos = [pos];
 
     return {
-        type: "worldBlockPlacedPacket",
-        packet: {
-            blockId,
-            layer,
-            positions: pos,
-            fields: Block.getArgsAsFields(blockId, args)
-        }
-    } satisfies ISendablePacket<"worldBlockPlacedPacket">;
+        blockId,
+        layer,
+        positions: pos,
+        fields: Block.getArgsAsFields(blockId, args)
+    } satisfies SendableBlockPacket;
 }
 
 /**
@@ -143,39 +140,37 @@ export function createBlockPacket(blockId: number | BlockKeys | string | Block, 
  * 
  * Labels can be passed, must be the second parameter.
  */
-export function createBlockPackets(blocks: { block: Block, layer: LayerType, pos: Point }[]) : ISendablePacket<"worldBlockPlacedPacket">[]
+export function createBlockPackets(blocks: { block: Block, layer: LayerType, pos: Point }[]) : SendableBlockPacket[]
 /**
  * NOTE: If you're passing a Map of labels, pass in the .values() of the map.
  */
-export function createBlockPackets(blocks: { block: Block, layer: LayerType, pos: Point }[], labels: Iterable<Label>) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[]
-export function createBlockPackets(blocks: { block: Block, layer: LayerType, pos: Point }[], labels: Iterable<Label> = []) {
+export function createBlockPackets(blocks: { block: Block, layer: LayerType, pos: Point }[]) : SendableBlockPacket[]
+export function createBlockPackets(blocks: { block: Block, layer: LayerType, pos: Point }[]) {
     // Exact max packet position size is unknown, but it was noticed, it works correctly with this size
 
-    // This is deliberate choice so that the typing won't complain since iterable don't have a common property
-    let listWithLabels:ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[] = [];
-    const list:ISendablePacket<"worldBlockPlacedPacket">[] = listWithLabels = [];
+    const list:SendableBlockPacket[] = [];
 
     for (let i = 0, len = blocks.length; i < len; i++) {
         const block = blocks[i];
         const packet = createBlockPacket(block.block, block.layer, block.pos);
 
-        let existingPacket:ISendablePacket<"worldBlockPlacedPacket"> | undefined;
+        let existingPacket:SendableBlockPacket | undefined;
 
         for (let j = 0, jen = list.length; j < jen; j++) {
-            const currPacket = list[j].packet;
+            const currPacket = list[j];
 
             if (currPacket?.blockId === block.block.bId &&
                 currPacket.layer === block.layer &&
                 currPacket.positions.length < MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE &&
-                currPacket.fields && packet.packet?.fields &&
-                compareObjs(currPacket.fields, packet.packet?.fields)
+                currPacket.fields && packet.fields &&
+                compareObjs(currPacket.fields, packet.fields)
             ) {
                 existingPacket = list[j];
             }
         }
 
-        if (existingPacket?.packet) {
-            const pos = existingPacket.packet.positions;
+        if (existingPacket) {
+            const pos = existingPacket.positions;
 
             for (let j = 0, jen = pos.length; j < jen; j++) {
                 if (block.pos.x !== pos[j].x || block.pos.y !== pos[j].y) {
@@ -185,14 +180,6 @@ export function createBlockPackets(blocks: { block: Block, layer: LayerType, pos
             }
 
         } else list.push(packet);
-    }
-
-    if (labels) {
-        for (const label of labels) {
-            listWithLabels.push(
-                label.toPacket()
-            );
-        }
     }
     
     return list;

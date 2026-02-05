@@ -208,6 +208,15 @@ export default class Label {
             }
         }
     }
+
+    static toPacket(label: ILabel) : ISendablePacket<"worldLabelUpsertPacket"> {
+        return {
+            type: "worldLabelUpsertPacket",
+            packet: {
+                label: label
+            }
+        }
+    }
     
     compareTo(b: ILabel) {
         return compareObjs(this.toJSON(), b);

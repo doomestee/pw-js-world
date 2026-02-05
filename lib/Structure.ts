@@ -1,9 +1,9 @@
 import type { AnyBlockField, ISendablePacket } from "pw-js-api";
 import Block from "./Block.js";
-import type { LayerType } from "./Constants.js";
+import { MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE, type LayerType } from "./Constants.js";
 import type PWGameWorldHelper from "./Helper.js";
-import type { BlockArg, Point } from "./types";
-import { createBlockPackets, find } from "./util/Misc.js";
+import type { BlockArg, Point, SendableBlockPacket } from "./types";
+import { compareObjs, createBlockPacket, createBlockPackets, find } from "./util/Misc.js";
 import { LegacyIncorrectArgError } from "./util/Error.js";
 import Label from "./Label.js";
 
@@ -32,7 +32,7 @@ export default class StructureHelper {
             case 1: case 2:
                 const desed = this.deserialiseStructBlocks(json.blocks, json.width, json.height);
 
-                return new DeserialisedStructure(desed.blocks, "labels" in json ? json.labels : [], { width: desed.width, height: desed.height });
+                return new DeserialisedStructure(desed.blocks, { width: desed.width, height: desed.height }, "labels" in json ? json.labels : []);
             default:
                 throw Error("Unknown file format");
         }
@@ -169,7 +169,7 @@ export class DeserialisedStructure {
     width: number;
     height: number;
 
-    constructor(blocks: [Block[][], Block[][], Block[][]], labels: Label[], struct: Omit<IStructure, "version"|"blocks">) {
+    constructor(blocks: [Block[][], Block[][], Block[][]], struct: Omit<IStructure, "version"|"blocks">, labels: Label[] = []) {
         this.blocks = blocks;
         this.labels = labels;
         this.width = struct.width;
@@ -261,13 +261,17 @@ export class DeserialisedStructure {
     toStruct() : IStructure {
         const struct = this.getSerialisedBlocks();
 
-        return {
+        const res:IStructure = {
             version: 2,
             width: this.width,
             height: this.height,
-            blocks: struct,
-            labels: this.labels ?? []
-        } satisfies IStructure;
+            blocks: struct
+        };
+
+        if (this.labels?.length > 0)
+            res["labels"] = this.labels;
+
+        return res;
     }
 
     /**
@@ -308,13 +312,13 @@ export class DeserialisedStructure {
     /**
      * This will return a list of packets containing all of the blocks.
      */
-    toPackets(x: number, y: number) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[];
+    toPackets(x: number, y: number) : SendableBlockPacket[];
     /**
      * This will return a list of packets containing all of the blocks.
      * 
      * If you pass in the blocks (from PWGameWorldHelper) for the 3rd parameter, this will be used to check for any already placed blocks.
      */
-    toPackets(x: number, y: number, helper: PWGameWorldHelper) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[];
+    toPackets(x: number, y: number, helper: PWGameWorldHelper) : SendableBlockPacket[];
     toPackets(x: number, y: number, helper?: PWGameWorldHelper) {
         const blockies:{ block: Block, layer: LayerType, pos: Point }[] = [];
         const labels:Label[] = [];
@@ -366,7 +370,111 @@ export class DeserialisedStructure {
             }
         }
 
-        return createBlockPackets(blockies, labels);
+        return createBlockPackets(blockies);
+    }
+    
+
+    /**
+     * This will return a list of raw packets containing all of the blocks AND labels.
+     */
+    toRawPackets(x: number, y: number) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[];
+    /**
+     * This will return a list of raw packets containing all of the blocks AND labels.
+     * 
+     * If you pass in the blocks (from PWGameWorldHelper) for the 3rd parameter, this will be used to check for any already placed blocks.
+     */
+    toRawPackets(x: number, y: number, helper: PWGameWorldHelper) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[];
+    toRawPackets(x: number, y: number, helper?: PWGameWorldHelper) {
+        const blockies:{ block: Block, layer: LayerType, pos: Point }[] = [];
+        const labels:ISendablePacket<"worldLabelUpsertPacket">[] = [];
+
+        if (helper) {
+            const maxWidth = this.width + x;
+            const maxHeight = this.height + y;
+
+            for (let l = 0; l < helper.blocks.length; l++) {
+                for (let x2 = x; x2 < helper.width && x2 < maxWidth; x2++) {
+                    for (let y2 = y; y2 < helper.height && y2 < maxHeight; y2++) {
+                        const currBlock = helper.blocks[l][x2 - x][y2 - y];
+                        const structBlock = this.blocks[l][x2 - x][y2 - y];
+
+                        if (!currBlock.compareTo(structBlock))
+                            blockies.push({ block: this.blocks[l][x2][y2], layer: l, pos: { x: x2, y: y2 } });
+                    }
+                }
+            }
+
+            for (let i = 0, len = this.labels.length; i < len; i++) {
+                const currLabel = helper.labels.get(this.labels[i].id);
+                const structLabel = this.labels[i].toJSON();
+                
+                structLabel.position.x += x;
+                structLabel.position.y += y;
+
+                if (!currLabel?.compareTo(structLabel)) {
+                    labels.push(Label.toPacket(structLabel));
+                }
+            }
+        }
+        else {
+            for (let l = 0; l < this.blocks.length; l++) {
+                for (let x2 = 0; x2 < this.width; x2++) {
+                    for (let y2 = 0; y2 < this.height; y2++) {
+                        blockies.push({ block: this.blocks[l][x2][y2], layer: l, pos: { x: x + x2, y: y + y2 } });
+                    }
+                }
+            }
+
+            for (let i = 0, len = this.labels.length; i < len; i++) {
+                const label = new Label(this.labels[i]);
+
+                label.position.x += x;
+                label.position.y += y;
+
+                labels.push(label.toPacket());
+            }
+        }
+
+        let listOfLabels:ISendablePacket<"worldLabelUpsertPacket">[] = [];
+        const list:ISendablePacket<"worldBlockPlacedPacket">[] = listOfLabels = [];
+
+        for (let i = 0, len = blockies.length; i < len; i++) {
+            const block = blockies[i];
+            const packet = createBlockPacket(block.block, block.layer, block.pos);
+    
+            let existingPacket:ISendablePacket<"worldBlockPlacedPacket"> | undefined;
+    
+            for (let j = 0, jen = list.length; j < jen; j++) {
+                const currPacket = list[j];
+    
+                if (currPacket.packet?.blockId === block.block.bId &&
+                    currPacket.packet.layer === block.layer &&
+                    currPacket.packet.positions.length < MAX_WORLD_BLOCK_PLACED_PACKET_POSITION_SIZE &&
+                    currPacket.packet.fields && packet.fields &&
+                    compareObjs(currPacket.packet.fields, packet.fields)
+                ) {
+                    existingPacket = list[j];
+                }
+            }
+    
+            if (existingPacket?.packet) {
+                const pos = existingPacket.packet.positions;
+    
+                for (let j = 0, jen = pos.length; j < jen; j++) {
+                    if (block.pos.x !== pos[j].x || block.pos.y !== pos[j].y) {
+                        pos.push(block.pos);
+                        break;
+                    }
+                }
+    
+            } else list.push({ type: "worldBlockPlacedPacket", packet });
+        }
+
+        for (let i = 0, len = labels.length; i < len; i++) {
+            listOfLabels.push(labels[i]);
+        }
+
+        return list;
     }
 }
 
@@ -414,7 +522,7 @@ export interface IStructureV2 {
     /**
      * List of all the labels.
      */
-    labels: Label[];
+    labels?: Label[];
 }
 
 export type IStructureBlocks = IStructureBlocksV1 | IStructureBlocksV2;
