@@ -753,6 +753,6 @@ export default class PWGameWorldHelper {
             }
         }
 
-        return new DeserialisedStructure(blocks, labels, { width: endX - startX + 1, height: endY - startY + 1 });
+        return new DeserialisedStructure(blocks, { width: endX - startX + 1, height: endY - startY + 1 }, labels);
     }
 }
