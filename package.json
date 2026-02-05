@@ -1,6 +1,6 @@
 {
   "name": "pw-js-world",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "An optional package for PW-JS-Api, aims to serve world purposes.",
   "scripts": {
     "test": "bun test/index.ts",
