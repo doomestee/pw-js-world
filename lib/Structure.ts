@@ -408,8 +408,8 @@ export class DeserialisedStructure {
                 const currLabel = helper.labels.get(this.labels[i].id);
                 const structLabel = this.labels[i].toJSON();
                 
-                structLabel.position.x += x;
-                structLabel.position.y += y;
+                structLabel.position.x += (x * 16);
+                structLabel.position.y += (y * 16);
 
                 if (!currLabel?.compareTo(structLabel)) {
                     labels.push(Label.toPacket(structLabel));
@@ -428,8 +428,8 @@ export class DeserialisedStructure {
             for (let i = 0, len = this.labels.length; i < len; i++) {
                 const label = new Label(this.labels[i]);
 
-                label.position.x += x;
-                label.position.y += y;
+                label.position.x += (x * 16);
+                label.position.y += (y * 16);
 
                 labels.push(label.toPacket());
             }

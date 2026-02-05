@@ -742,13 +742,15 @@ export default class PWGameWorldHelper {
 
         if (this.labels.size) {
             for (const [, label] of this.labels) {
-                if (label.position.x >= startX && label.position.x <= endX
-                    && label.position.y >= startY && label.position.y <= endY
+                let roundedPos = { x: Math.round(label.position.x / 16), y: Math.round(label.position.y / 16) }
+
+                if (roundedPos.x >= startX && roundedPos.x <= endX
+                    && roundedPos.y >= startY && roundedPos.y <= endY
                 ) {
                     const labie = new Label(label);
 
-                    labie.position.x -= startX;
-                    labie.position.y -= startY;
+                    labie.position.x -= (startX * 16);
+                    labie.position.y -= (startY * 16);
                 }
             }
         }
