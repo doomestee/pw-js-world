@@ -11,6 +11,7 @@ import type { Point, PWGameHook } from "./types/index.js";
 import { DeserialisedStructure } from "./Structure.js";
 import { MissingBlockError } from "./util/Error.js";
 import { read7BitEncodedInt } from "./util/Misc.js";
+import { KeyStates, updateKeyStates } from "./KeyState.js";
 
 /**
  * To use this helper, you must first create an instance of this,
@@ -28,6 +29,17 @@ export default class PWGameWorldHelper {
     players = new Map<number, Player>();
 
     globalSwitches:boolean[] = [];
+
+    // Due to insufficient information received from game server, there is no way to distinguish whether:
+    // - left and right keys are both held, or both not held
+    // - up and down keys are both held, or both not held
+    keyStates: KeyStates = {
+        up: { pressed: false, released: false, held: false },
+        down: { pressed: false, released: false, held: false },
+        left: { pressed: false, released: false, held: false },
+        right: { pressed: false, released: false, held: false },
+        jump: { pressed: false, released: false, held: false },
+    }
 
     private _meta?: ProtoGen.WorldMeta | null;
     private _width = 0;
@@ -340,7 +352,9 @@ export default class PWGameWorldHelper {
                             };
                         }
 
-                        return { player };//changes: { type: "face", oldValue: oldFace, newValue: player.face } };
+                        updateKeyStates(this.keyStates, packet.value);
+
+                        return { player, keyStates: this.keyStates };
                     }
                 }
                 return;

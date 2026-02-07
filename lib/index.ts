@@ -5,6 +5,8 @@ export { default as Block } from "./Block.js";
 
 export { default as Label, type ILabel, TextAlignment } from "./Label.js";
 
+export { type KeyState, type KeyStates } from "./KeyState.js";
+
 export { default as Player, PlayerEffect, PlayerCounters, type IPlayer, type IPlayerEffect, type IPlayerRights, type IPlayerWorldState } from "./Player.js";
 
 export { createBlockPacket, createBlockPackets, listedFieldTypeToGameType } from "./util/Misc.js";
