@@ -1,9 +1,9 @@
 import type { ProtoGen } from "pw-js-api";//"../node_modules/pw-js-api/dist/gen/world_pb";
 
 export interface KeyState {
-    pressed: boolean
-    released: boolean
-    held: boolean
+    pressed: boolean  // Set true once during 'PlayerMovedPacket' packet in which event occurs
+    released: boolean // Set true once during 'PlayerMovedPacket' packet in which event occurs
+    held: boolean     // Set true for all 'PlayerMovedPacket' packets between pressed and released events
 }
 
 export interface KeyStates {
