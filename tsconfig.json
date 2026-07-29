@@ -11,6 +11,9 @@
       "ES2021",
       "ES2022"
     ],
+    "types": [
+      "node"
+    ],
     "target": "ES6",
     "inlineSourceMap": true,
     "importHelpers": true,
