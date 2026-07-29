@@ -4,6 +4,7 @@ import type { CleanProtoMessage, OmitRecursively, ProtoGen } from "pw-js-api";
 import Player, { IPlayerRights, PlayerEffect } from "../Player.js";
 import Block from "../Block.js";
 import Label from "../Label.js";
+import { KeyStates } from "../KeyState.js";
 
 type Point = { x: number, y: number };
 
@@ -33,7 +34,7 @@ export type PWGameHook = {
     playerAddEffectPacket: PlayerObj & { effect: PlayerEffect },
     playerRemoveEffectPacket: PlayerObj & { effect: PlayerEffect },
     playerResetEffectsPacket: PlayerObj & { effects: PlayerEffect[] },
-    playerMovedPacket: PlayerObj,
+    playerMovedPacket: PlayerObj & { keyStates: KeyStates },
     playerResetPacket: PlayerObj,
     playerRespawnPacket: PlayerObj,
     playerUpdateRightsPacket: PlayerObj & { rights: IPlayerRights },
