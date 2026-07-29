@@ -20,7 +20,7 @@ export interface ILabel {
      * This may be undefined if you're creating this label.
      * Guaranteed to exist if given by the server.
      */
-    id: string;
+    id?: string;
     /**
      * Whereabouts of this label.
      */
@@ -36,7 +36,7 @@ export interface ILabel {
     /**
      * Maximum width of the text.
      */
-    maxWidth: number;
+    maxWidth?: number;
     /**
      * Whether if this has shadow or not.
      */
@@ -79,16 +79,32 @@ export interface ILabel {
      * Works if shadow is true.
      */
     shadowOffsetY: number;
+    /**
+     * Whether if this has an outline
+     */
+    outline: boolean;
+    /**
+     * Unsigned Integer (32 bit)
+     * 
+     * Colour of the outline
+     */
+    outlineColor: number;
+    /**
+     * Signed Integer (32 bit)
+     * 
+     * Width of the outline
+     */
+    outlineWidth: number;
 }
 
-export default class Label {
+export default class Label implements ILabel {
     /**
      * ID of the label.
      * 
      * This may be undefined if you're creating this label.
      * Guaranteed to exist if given by the server.
      */
-    id: string;
+    id?: string;
     /**
      * Whereabouts of this label.
      */
@@ -104,7 +120,7 @@ export default class Label {
     /**
      * Maximum width of the text.
      */
-    maxWidth: number;
+    maxWidth?: number;
     /**
      * Whether if this has shadow or not.
      */
@@ -147,6 +163,23 @@ export default class Label {
      * Works if shadow is true.
      */
     shadowOffsetY: number;
+
+    /**
+     * Whether if this has an outline
+     */
+    outline: boolean;
+    /**
+     * Unsigned Integer (32 bit)
+     * 
+     * Colour of the outline
+     */
+    outlineColor: number;
+    /**
+     * Signed Integer (32 bit)
+     * 
+     * Width of the outline
+     */
+    outlineWidth: number;
 
     constructor(label: CleanProtoMessage<ProtoGen.ProtoTextLabel> | ILabel) {
         this.id = label.id;
@@ -169,13 +202,16 @@ export default class Label {
         this.shadowColor = label.shadowColor;
         this.shadowOffsetX = label.shadowOffsetX;
         this.shadowOffsetY = label.shadowOffsetY;
+        this.outline = label.outline;
+        this.outlineColor = label.outlineColor;
+        this.outlineWidth = label.outlineWidth;
     }
 
     /**
      * This can be used to sort of clone from.
      */
     toJSON(newPos?: Optional<Point, "x"|"y"> | undefined) : ILabel {
-        const res = {
+        const res:ILabel = {
             id: this.id,
             position: { x: this.position.x, y: this.position.y } as Point,
             text: this.text,
@@ -190,6 +226,9 @@ export default class Label {
             shadowColor: this.shadowColor,
             shadowOffsetX: this.shadowOffsetX,
             shadowOffsetY: this.shadowOffsetY,
+            outline: this.outline,
+            outlineColor: this.outlineColor,
+            outlineWidth: this.outlineWidth,
         };
         
         if (typeof newPos === "object") {

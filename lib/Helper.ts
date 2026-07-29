@@ -171,10 +171,11 @@ export default class PWGameWorldHelper {
 
                     if (label) {
                         const l = new Label(label);
+                        const labelId = l.id!;
 
-                        const oldLabel = this.labels.get(l.id) ?? null;
+                        const oldLabel = this.labels.get(labelId) ?? null;
                         
-                        this.labels.set(l.id, l);
+                        this.labels.set(labelId, l);
 
                         return { label: l, oldLabel };
                     }
@@ -565,7 +566,7 @@ export default class PWGameWorldHelper {
         }
 
         for (let i = 0, len = bytes.textLabels.length; i < len; i++) {
-            this.labels.set(bytes.textLabels[i].id, new Label(bytes.textLabels[i]));
+            this.labels.set(bytes.textLabels[i].id!, new Label(bytes.textLabels[i]));
         }
 
         this.deserialize(bytes);

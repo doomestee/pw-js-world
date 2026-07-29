@@ -340,7 +340,7 @@ export class DeserialisedStructure {
             }
 
             for (let i = 0, len = this.labels.length; i < len; i++) {
-                const currLabel = helper.labels.get(this.labels[i].id);
+                const currLabel = helper.labels.get(this.labels[i].id!);
                 const structLabel = this.labels[i].toJSON();
                 
                 structLabel.position.x += x;
@@ -405,7 +405,7 @@ export class DeserialisedStructure {
             }
 
             for (let i = 0, len = this.labels.length; i < len; i++) {
-                const currLabel = helper.labels.get(this.labels[i].id);
+                const currLabel = helper.labels.get(this.labels[i].id!);
                 const structLabel = this.labels[i].toJSON();
                 
                 structLabel.position.x += (x * 16);
