@@ -4,6 +4,8 @@ import type { CleanProtoMessage, OmitRecursively, ProtoGen } from "pw-js-api";
 import Player, { IPlayerRights, PlayerEffect } from "../Player.js";
 import Block from "../Block.js";
 import Label from "../Label.js";
+import Zone from "../Zone.js";
+
 import { KeyStates } from "../KeyState.js";
 
 type Point = { x: number, y: number };
@@ -51,4 +53,8 @@ export type PWGameHook = {
     playerCounterTransactionPacket: PlayerObj & { oldScore: number, diff: number },
     worldLabelUpsertPacket: { label: Label, oldLabel: Label | null },
     worldLabelDeletePacket: { labelId: string, oldLabel: Label | null },
+
+    worldZoneUpsertPacket: { zone: Zone | null };
+    worldZoneDeletePacket: { zoneId: string, oldZone: Zone | null };
+    // worldZoneAreaEditPacket: { }
 };

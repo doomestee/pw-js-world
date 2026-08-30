@@ -12,6 +12,7 @@ import { DeserialisedStructure } from "./Structure.js";
 import { MissingBlockError } from "./util/Error.js";
 import { read7BitEncodedInt } from "./util/Misc.js";
 import { KeyStates, updateKeyStates } from "./KeyState.js";
+import Zone from "./Zone.js";
 
 /**
  * To use this helper, you must first create an instance of this,
@@ -23,9 +24,18 @@ export default class PWGameWorldHelper {
      * Arrays of blocks (by layer, x, y)
      */
     blocks: [Block[][], Block[][], Block[][]] = [[], [], []];//Block[][][] = [];
-
+    /**
+     * Mapped by the label ID.
+     */
     labels: Map<string, Label> = new Map();
+    /**
+     * Mapped by the zone ID.
+     */
+    zones: Map<string, Zone> = new Map();
 
+    /**
+     * Mapped by the player's ID.
+     */
     players = new Map<number, Player>();
 
     globalSwitches:boolean[] = [];
@@ -551,6 +561,36 @@ export default class PWGameWorldHelper {
                     return;
                 }
             //#endregion
+            
+            //#region Zone
+            // a new zone is created
+            case "worldZoneUpsertPacket":
+                {
+                    if (!packet.value.zone) return { zone: null }; // why is it given undefined
+                    const zone = new Zone(packet.value.zone);
+
+                    this.zones.set(zone.id, zone);
+
+                    return { zone };
+                }
+            // a zone has been deleted
+            case "worldZoneDeletePacket":
+                {
+                    const zone = this.zones.get(packet.value.id);
+                    if (this.zones.delete(packet.value.id) && zone) return { zoneId: packet.value.id, oldZone: zone };
+
+                    return { zoneId: packet.value.id, oldZone: null };
+                }
+            // smth has been added or removed to a zone's memberships
+            // TODO: ACTUALLY IMPLEMENT THIS
+            case "worldZoneAreaEditPacket":
+                {
+                    const zone = this.zones.get(packet.value.zoneId);
+                    if (!zone) return;
+                    
+                    return;
+                }
+            //#endregion
         }
 
         return;
@@ -561,12 +601,13 @@ export default class PWGameWorldHelper {
      * 
      * Yes th typing is cursed, I don't care as this is private.
      */
-    private initialise(bytes: Record<"backgroundLayerData"|"foregroundLayerData"|"overlayLayerData", Uint8Array<ArrayBufferLike>> & { blockDataPalette: ProtoGen.BlockDataInfo[], textLabels: ProtoGen.ProtoTextLabel[] }, width?: number, height?: number) {
+    private initialise(bytes: Record<"backgroundLayerData"|"foregroundLayerData"|"overlayLayerData", Uint8Array<ArrayBufferLike>> & { blockDataPalette: ProtoGen.BlockDataInfo[], textLabels: ProtoGen.ProtoTextLabel[], zones: ProtoGen.ProtoZone[] }, width?: number, height?: number) {
         if (width === undefined) width = this.width;
         if (height === undefined) height = this.height;
 
         this.blocks.splice(0);
         this.labels.clear();
+        this.zones.clear();
 
         for (let l = 0; l < 3; l++) {
             this.blocks[l] = [];
@@ -581,6 +622,10 @@ export default class PWGameWorldHelper {
 
         for (let i = 0, len = bytes.textLabels.length; i < len; i++) {
             this.labels.set(bytes.textLabels[i].id!, new Label(bytes.textLabels[i]));
+        }
+
+        for (let i = 0, len = bytes.zones.length; i < len; i++) {
+            this.zones.set(bytes.zones[i].id, new Zone(bytes.zones[i]));
         }
 
         this.deserialize(bytes);
@@ -741,6 +786,7 @@ export default class PWGameWorldHelper {
     sectionArea(startX: number, startY: number, endX: number, endY: number) {
         const blocks: [Block[][], Block[][], Block[][]] = [[], [], []];
         const labels:Label[] = [];
+        const zones:Zone[] = [];
 
         if (startX > endX) throw Error("Starting X is greater than ending X");
         if (startY > endY) throw Error("Starting Y is greater than ending Y");
@@ -770,6 +816,12 @@ export default class PWGameWorldHelper {
             }
         }
 
-        return new DeserialisedStructure(blocks, { width: endX - startX + 1, height: endY - startY + 1 }, labels);
+        if (this.zones.size) {
+            for (const [, zone] of this.zones) {
+                
+            }
+        }
+
+        return new DeserialisedStructure(blocks, { width: endX - startX + 1, height: endY - startY + 1 }, labels, zones);
     }
 }

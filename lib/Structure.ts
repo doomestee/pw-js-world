@@ -6,6 +6,7 @@ import type { BlockArg, Point, SendableBlockPacket } from "./types";
 import { compareObjs, createBlockPacket, createBlockPackets, find } from "./util/Misc.js";
 import { LegacyIncorrectArgError } from "./util/Error.js";
 import Label from "./Label.js";
+import Zone from "./Zone.js";
 
 /**
  * This is external to the main Helper, it will allow developers to use the structure without needing to use helper if they so wish.
@@ -32,7 +33,7 @@ export default class StructureHelper {
             case 1: case 2:
                 const desed = this.deserialiseStructBlocks(json.blocks, json.width, json.height);
 
-                return new DeserialisedStructure(desed.blocks, { width: desed.width, height: desed.height }, "labels" in json ? json.labels : []);
+                return new DeserialisedStructure(desed.blocks, { width: desed.width, height: desed.height }, "labels" in json ? json.labels : [], "zones" in json ? json.zones : []);
             default:
                 throw Error("Unknown file format");
         }
@@ -165,13 +166,18 @@ export default class StructureHelper {
 export class DeserialisedStructure {
     blocks: [Block[][], Block[][], Block[][]];
     labels: Label[];
+    /**
+     * NOTE: the indexing used here IS NOT THE SAME to the zone's indexes in game
+     */
+    zones: Zone[];
 
     width: number;
     height: number;
 
-    constructor(blocks: [Block[][], Block[][], Block[][]], struct: Omit<IStructure, "version"|"blocks">, labels: Label[] = []) {
+    constructor(blocks: [Block[][], Block[][], Block[][]], struct: Omit<IStructure, "version"|"blocks">, labels: Label[] = [], zones: Zone[] = []) {
         this.blocks = blocks;
         this.labels = labels;
+        this.zones = zones;
         this.width = struct.width;
         this.height = struct.height;
     }
@@ -179,9 +185,9 @@ export class DeserialisedStructure {
     /**
      * This will return a new object that meets IStructureBlocks interface.
      * 
-     * (This does not contain the labels!)
+     * (This does not contain the labels and zones!)
      * 
-     * NOTE: This requires you to have called API getlistblocks (unless you have joined the world)
+     * NOTE: This requires you to have called API getlistblocks (joining a world automatically does that)
      */
     getSerialisedBlocks() : IStructureBlocksV2 {
         const blocks:[[x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][], [x: number, y: number, ...argMapping: number[]][]][] = [];
@@ -270,6 +276,9 @@ export class DeserialisedStructure {
 
         if (this.labels?.length > 0)
             res["labels"] = this.labels;
+
+        if (this.zones?.length > 0)
+            res["zones"] = this.zones;
 
         return res;
     }
@@ -375,18 +384,22 @@ export class DeserialisedStructure {
     
 
     /**
-     * This will return a list of raw packets containing all of the blocks AND labels.
+     * This will return a list of raw packets containing all of the blocks, labels AND zones.
      */
-    toRawPackets(x: number, y: number) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[];
+    toRawPackets(x: number, y: number) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket"|"worldZoneUpsertRequestPacket">[];
     /**
      * This will return a list of raw packets containing all of the blocks AND labels.
      * 
+     * (The zones don't work at the moment)
+     * 
      * If you pass in the blocks (from PWGameWorldHelper) for the 3rd parameter, this will be used to check for any already placed blocks.
+     * For the time being, zone packets will not be sent through this overload.
      */
     toRawPackets(x: number, y: number, helper: PWGameWorldHelper) : ISendablePacket<"worldBlockPlacedPacket"|"worldLabelUpsertPacket">[];
     toRawPackets(x: number, y: number, helper?: PWGameWorldHelper) {
         const blockies:{ block: Block, layer: LayerType, pos: Point }[] = [];
         const labels:ISendablePacket<"worldLabelUpsertPacket">[] = [];
+        const zones:ISendablePacket<"worldZoneUpsertRequestPacket">[] = [];
 
         if (helper) {
             const maxWidth = this.width + x;
@@ -415,6 +428,10 @@ export class DeserialisedStructure {
                     labels.push(Label.toPacket(structLabel));
                 }
             }
+
+            // for (let i = 0, len = this.zones.length; i < len; i++) {
+
+            // }
         }
         else {
             for (let l = 0; l < this.blocks.length; l++) {
@@ -474,6 +491,11 @@ export class DeserialisedStructure {
             listOfLabels.push(labels[i]);
         }
 
+        for (let i = 0, len = zones.length; i < len; i++) {
+            //@ts-ignore i cba
+            list.push(zones[i]);
+        }
+
         return list;
     }
 }
@@ -500,6 +522,11 @@ export interface IStructureV1 {
     blocks: IStructureBlocksV1;
 }
 
+/**
+ * With labels and zones support.
+ * 
+ * Current version.
+ */
 export interface IStructureV2 {
     /**
      * Version of the structure object, not the world.
@@ -523,6 +550,12 @@ export interface IStructureV2 {
      * List of all the labels.
      */
     labels?: Label[];
+    
+    /**
+     * List of all the zones.
+     * NOTE: Indexing here is not the same to that of the game's.
+     */
+    zones?: Zone[];
 }
 
 export type IStructureBlocks = IStructureBlocksV1 | IStructureBlocksV2;
@@ -551,6 +584,9 @@ export interface IStructureBlocksV1 {
     ][];
 }
 
+/**
+ * Current version
+ */
 export interface IStructureBlocksV2 {
     // Kind of a shame to realise this now
     /**
