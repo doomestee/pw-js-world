@@ -6,6 +6,64 @@ import { compareObjs } from "./util/Misc.js";
 
 // }
 
+export class ZoneMembership {
+    /**
+     * This is where the calculations will be made from.
+     */
+    bytes: Uint8Array;
+
+    /**
+     * The width of this member.
+     */
+    _width: number;
+
+    /**
+     * The height of this member.
+     */
+    _height: number;
+
+    constructor(width: number, height: number, bytes?: Uint8Array) {
+        this.bytes = bytes ?? new Uint8Array();
+        this._width = width;
+        this._height = height;
+    }
+
+    /**
+     * This will return a list of the booleans indicating whether if that area is part of a zone.
+     * 
+     * IMPORTANT: Since the server returns the states column wise (y, x),
+     * this list will therefore preserve the structure of the states too.
+     * 
+     * ==UNFINISHED== (not tested)
+     */
+    toArray() : boolean[][] {
+        const list:boolean[][] = new Array(this._width);
+
+        let switcher = this.bytes[0] === 1;
+        let counter = this.bytes[1];
+        let incrementor = 2;
+
+        // What the game gives and expects is column wise... why?
+
+        for (let y = 0; y < this._height; y++) {
+            list[y] = [];
+
+            for (let x = 0; x < this._width; x++) {
+                list[y][x] = switcher;
+
+                if (--counter === 0) {
+                    switcher = !switcher;
+                    counter = this.bytes[incrementor++];
+
+                    if (counter === undefined) return list;
+                }
+            }
+        }
+
+        return list;
+    }
+}
+
 export interface IZone {
     id: string;
     name: string;
@@ -31,7 +89,7 @@ export interface IZone {
     /**
      * per-block 0/1 mask, RLE-compressed
      */
-    membershipRle: Uint8Array;//IZoneMembership[];
+    membershipRle: ZoneMembership;//Uint8Array;//IZoneMembership[];
 
     vision: ProtoGen.ZoneVision;
     
@@ -270,7 +328,7 @@ export default class Zone implements IZone {
     /**
      * per-block 0/1 mask, RLE-compressed
      */
-    membershipRle: ProtoGen.ProtoZone["membershipRle"];
+    membershipRle: IZone["membershipRle"];
 
     vision: ProtoGen.ZoneVision;
     
@@ -487,7 +545,9 @@ export default class Zone implements IZone {
         this.hue = zone.hue;
         this.width = zone.width;
         this.height = zone.height;
-        this.membershipRle = zone.membershipRle as IZone["membershipRle"]; // idk why this one was weird
+        this.membershipRle = zone.membershipRle instanceof ZoneMembership
+            ? zone.membershipRle
+            : new ZoneMembership(zone.width, zone.height, zone.membershipRle as ProtoGen.ProtoZone["membershipRle"]); // idk why this one is weird requiring casting
         this.vision = zone.vision;
         this.visionOutside = zone.visionOutside;
         this.hasVisionColor = zone.hasVisionColor;
@@ -547,17 +607,23 @@ export default class Zone implements IZone {
     }
 
     /**
-     * This can be used to sort of clone from.
+     * This can be used to clone from.
+     * 
+     * NOTE: What this returns is meant to be pass through for the
+     * upserting zone changes packet.
+     * 
+     * NOTE: One of the property is a binary type (membershipRle) which is not json friendly.
+     * Encode/decode it yourself if you wish to stringify.
      */
-    toJSON() : IZone {
-        const res:IZone = {
+    toJSON() : Omit<IZone, "membershipRle"> & { membershipRle: Uint8Array } {
+        const res:Omit<IZone, "membershipRle"> & { membershipRle: Uint8Array } = {
             id: this.id,
             name: this.name,
             priority: this.priority,
             hue: this.hue,
             width: this.width,
             height: this.height,
-            membershipRle: this.membershipRle,
+            membershipRle: this.membershipRle.bytes,
             vision: this.vision,
             visionOutside: this.visionOutside,
             hasVisionColor: this.hasVisionColor,
@@ -620,19 +686,20 @@ export default class Zone implements IZone {
     }
 
     toPacket() : ISendablePacket<"worldZoneUpsertRequestPacket"> {
-        return {
-            type: "worldZoneUpsertRequestPacket",
-            packet: {
-                zone: this.toJSON()
-            }
-        }
+        return Zone.toPacket(this);
+        // return {
+        //     type: "worldZoneUpsertRequestPacket",
+        //     packet: {
+        //         zone: this.toJSON()
+        //     }
+        // }
     }
 
-    static toPacket(zone: IZone) : ISendablePacket<"worldZoneUpsertRequestPacket"> {
+    static toPacket(zone: IZone | Zone) : ISendablePacket<"worldZoneUpsertRequestPacket"> {
         return {
             type: "worldZoneUpsertRequestPacket",
             packet: {
-                zone
+                zone: zone instanceof Zone ? zone.toJSON() : new Zone(zone).toJSON()
             }
         }
     }
