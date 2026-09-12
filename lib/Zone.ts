@@ -84,6 +84,36 @@ export class ZoneMembership {
     }
 
     /**
+     * This will create a ZoneMembership from a list of positions.
+     */
+    static fromPositions(positions: Point[]): ZoneMembership {
+        if (positions.length === 0) {
+            return this.fromBoolGrid([])
+        }
+
+        let maxX = 0
+        let maxY = 0
+        for (const pos of positions) {
+            if (pos.x > maxX) {
+                maxX = pos.x
+            }
+            if (pos.y > maxY) {
+                maxY = pos.y
+            }
+        }
+
+        const boolGrid = Array.from({ length: maxY + 1 }, () => Array.from({ length: maxX + 1 }, () => false))
+        for (const pos of positions) {
+            if (pos.x < 0 || pos.y < 0) {
+                continue
+            }
+            boolGrid[pos.y][pos.x] = true
+        }
+
+        return this.fromBoolGrid(boolGrid)
+    }
+
+    /**
      * This will create a ZoneMembership from a boolean grid.
      */
     static fromBoolGrid(membership: boolean[][]): ZoneMembership {
