@@ -1,5 +1,6 @@
 import { CleanProtoMessage, ISendablePacket, ProtoGen } from "pw-js-api";
 import { compareObjs } from "./util/Misc.js";
+import {Point} from "./types";
 
 // soon
 // export interface IZoneMembership {
@@ -57,6 +58,19 @@ export class ZoneMembership {
 
                     if (counter === undefined) return list;
                 }
+            }
+        }
+
+        return list;
+    }
+
+    positions(): Point[] {
+        const arr = this.toArray();
+        const list: Point[] = [];
+
+        for (let y = 0; y < this._height; y++) {
+            for (let x = 0; x < this._width; x++) {
+                if (arr[y][x]) list.push({x, y});
             }
         }
 
