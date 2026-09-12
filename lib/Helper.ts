@@ -563,7 +563,7 @@ export default class PWGameWorldHelper {
             //#endregion
             
             //#region Zone
-            // a new zone is created
+            // a new zone is created or existing one is updated
             case "worldZoneUpsertPacket":
                 {
                     if (!packet.value.zone) return { zone: null }; // why is it given undefined

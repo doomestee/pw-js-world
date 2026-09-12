@@ -30,52 +30,124 @@ export class ZoneMembership {
     }
 
     /**
-     * This will return a list of the booleans indicating whether if that area is part of a zone.
-     * 
-     * IMPORTANT: Since the server returns the states column wise (y, x),
-     * this list will therefore preserve the structure of the states too.
-     * 
-     * ==UNFINISHED== (not tested)
+     * This will return a list of positions that are part of the zone.
      */
-    toArray() : boolean[][] {
-        const list:boolean[][] = new Array(this._width);
+    toPositions(): Point[] {
+        const membership = this.toBoolGrid();
+        const positions: Point[] = [];
 
-        let switcher = this.bytes[0] === 1;
-        let counter = this.bytes[1];
-        let incrementor = 2;
-
-        // What the game gives and expects is column wise... why?
-
-        for (let y = 0; y < this._height; y++) {
-            list[y] = [];
-
-            for (let x = 0; x < this._width; x++) {
-                list[y][x] = switcher;
-
-                if (--counter === 0) {
-                    switcher = !switcher;
-                    counter = this.bytes[incrementor++];
-
-                    if (counter === undefined) return list;
+        for (let x = 0; x < (membership[0]?.length ?? 0); x++) {
+            for (let y = 0; y < membership.length; y++) {
+                if (membership[y]?.[x]) {
+                    positions.push({ x, y });
                 }
             }
         }
 
-        return list;
+        return positions;
     }
 
-    positions(): Point[] {
-        const arr = this.toArray();
-        const list: Point[] = [];
-
-        for (let y = 0; y < this._height; y++) {
-            for (let x = 0; x < this._width; x++) {
-                if (arr[y][x]) list.push({x, y});
-            }
+    /**
+     * This will return a list of booleans indicating whether if that area is part of a zone.
+     */
+    toBoolGrid(): boolean[][] {
+        const grid: boolean[][] = Array.from({ length: this._height }, () => Array.from({ length: this._width }, () => false));
+        const totalCells = this._width * this._height;
+        if (totalCells === 0) {
+            return grid;
         }
 
-        return list;
+        if (this.bytes.length === 0) {
+            return grid;
+        }
+
+        let current = this.bytes[0] !== 0;
+        let index = 0;
+        let offset = 1;
+
+        while (index < totalCells && offset < this.bytes.length) {
+            const runLength = readVarint(this.bytes, offset);
+            offset = runLength.offset;
+
+            for (let i = 0; i < runLength.length && index < totalCells; i++, index++) {
+                const x = Math.floor(index / this._height);
+                const y = index % this._height;
+                if (y < grid.length && x < grid[y].length) {
+                    grid[y][x] = current;
+                }
+            }
+
+            current = !current;
+        }
+
+        return grid;
     }
+
+    /**
+     * This will create a ZoneMembership from a boolean grid.
+     */
+    static fromBoolGrid(membership: boolean[][]): ZoneMembership {
+        const height = membership.length;
+        const width = membership[0]?.length ?? 0;
+        const totalCells = width * height;
+        if (totalCells === 0) {
+            return new ZoneMembership(width, height, new Uint8Array());
+        }
+
+        const getByIndex = (index: number) => {
+            const x = Math.floor(index / height);
+            const y = index % height;
+            return membership[y]?.[x] ?? false;
+        };
+
+        const bytes: number[] = [];
+        bytes.push(getByIndex(0) ? 1 : 0);
+
+        let index = 0;
+        while (index < totalCells) {
+            const current = getByIndex(index);
+            let runLength = 1;
+            while (index + runLength < totalCells && getByIndex(index + runLength) === current) {
+                runLength++;
+            }
+
+            writeVarint(bytes, runLength);
+            index += runLength;
+        }
+
+        return new ZoneMembership(width, height, Uint8Array.from(bytes));
+    }
+}
+
+function readVarint(bytes: Uint8Array, offset: number): { length: number; offset: number } {
+    let result = 0;
+    let shift = 0;
+
+    while (offset < bytes.length) {
+        const b = bytes[offset++];
+        result |= (b & 0x7f) << shift;
+
+        if ((b & 0x80) === 0) {
+            break;
+        }
+
+        shift += 7;
+    }
+
+    return { length: result, offset };
+}
+
+function writeVarint(output: number[], value: number) {
+    let v = value >>> 0;
+    do {
+        let b = v & 0x7f;
+        v >>>= 7;
+        if (v !== 0) {
+            b |= 0x80;
+        }
+
+        output.push(b);
+    } while (v !== 0);
 }
 
 export interface IZone {
