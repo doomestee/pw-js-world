@@ -12,7 +12,7 @@ import { DeserialisedStructure } from "./Structure.js";
 import { MissingBlockError } from "./util/Error.js";
 import { read7BitEncodedInt } from "./util/Misc.js";
 import { KeyStates, updateKeyStates } from "./KeyState.js";
-import Zone from "./Zone.js";
+import Zone, {ZoneMembership} from "./Zone.js";
 
 /**
  * To use this helper, you must first create an instance of this,
@@ -563,7 +563,7 @@ export default class PWGameWorldHelper {
             //#endregion
             
             //#region Zone
-            // a new zone is created
+            // a new zone is created or existing one is updated
             case "worldZoneUpsertPacket":
                 {
                     if (!packet.value.zone) return { zone: null }; // why is it given undefined
@@ -581,13 +581,21 @@ export default class PWGameWorldHelper {
 
                     return { zoneId: packet.value.id, oldZone: null };
                 }
-            // smth has been added or removed to a zone's memberships
-            // TODO: ACTUALLY IMPLEMENT THIS
+            // zone positions have been edited
             case "worldZoneAreaEditPacket":
                 {
                     const zone = this.zones.get(packet.value.zoneId);
                     if (!zone) return;
-                    
+
+                    const grid = zone.membershipRle.toBoolGrid()
+                    for (let x = 0; x < packet.value.width; x++) {
+                        for (let y = 0; y < packet.value.height; y++) {
+                            grid[packet.value.y + y][packet.value.x + x] = packet.value.add
+                        }
+                    }
+
+                    zone.membershipRle = ZoneMembership.fromBoolGrid(grid)
+
                     return;
                 }
             //#endregion

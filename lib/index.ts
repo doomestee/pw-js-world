@@ -16,4 +16,6 @@ export { default as StructureHelper, DeserialisedStructure, type IStructure, typ
 
 export { LayerType } from "./Constants.js";
 
+export { default as Zone, IZone, ZoneMembership } from "./Zone.js";
+
 // import * from "./Helper";
