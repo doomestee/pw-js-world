@@ -220,12 +220,12 @@ export default class PWGameWorldHelper {
             //#region Player
             case "playerJoinedPacket":
                 {
-                    const { properties, worldState } = packet.value;
+                    const { properties } = packet.value;
 
                     let player: Player;
 
-                    if (properties && worldState) {
-                        this.players.set(properties.playerId, player = new Player(properties, { ...worldState, switches: this.convertSwitchState(worldState.switches), counters: new PlayerCounters(worldState.counters) }));
+                    if (properties && properties.worldState) {
+                        this.players.set(properties.playerId, player = new Player(properties, { ...properties.worldState, switches: this.convertSwitchState(properties.worldState.switches), counters: new PlayerCounters(properties.worldState.counters) }));
 
                         return { player };
                     }
